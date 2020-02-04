@@ -1,0 +1,6 @@
+HTTPretty
+markdown
+pylint
+pytest
+# Installing pelican in editable mode makes its tests.support package available to us:
+-e git+https://github.com/getpelican/pelican.git#egg=pelican
