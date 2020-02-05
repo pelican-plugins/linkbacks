@@ -4,8 +4,8 @@ python:
 cache: pip
 before_install: pip install poetry
 install:
-- pip install -r dev-requirements.txt
 - poetry install
+- pip install -r dev-requirements.txt
 script:
  - pylint *linkbacks.py
  - py.test

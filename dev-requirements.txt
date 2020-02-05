@@ -1,3 +1,4 @@
+# Why this cannot be put in pyproject.toml: https://github.com/getpelican/cookiecutter-pelican-plugin/issues/8
 HTTPretty
 markdown
 pylint

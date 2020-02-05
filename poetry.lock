@@ -400,17 +400,6 @@ socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7)", "win-inet-pton"]
 
 [[package]]
 category = "main"
-description = "Asynchronous Python HTTP for Humans."
-name = "requests-futures"
-optional = false
-python-versions = "*"
-version = "1.0.0"
-
-[package.dependencies]
-requests = ">=1.2.0"
-
-[[package]]
-category = "main"
 description = "Webmention Manager"
 name = "ronkyuu"
 optional = false
@@ -510,7 +499,7 @@ testing = ["jaraco.itertools"]
 markdown = []
 
 [metadata]
-content-hash = "221234efba203e84d1450c8590cefd716d7c47b51d7c231c65ec317964d40102"
+content-hash = "162b3267965cfd4d226f993103911cef106102bfa421c81ccf9dc2aa0be8dbb8"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -692,9 +681,6 @@ pytz = [
 requests = [
     {file = "requests-2.22.0-py2.py3-none-any.whl", hash = "sha256:9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31"},
     {file = "requests-2.22.0.tar.gz", hash = "sha256:11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4"},
-]
-requests-futures = [
-    {file = "requests-futures-1.0.0.tar.gz", hash = "sha256:35547502bf1958044716a03a2f47092a89efe8f9789ab0c4c528d9c9c30bc148"},
 ]
 ronkyuu = [
     {file = "ronkyuu-0.7-py3-none-any.whl", hash = "sha256:846707b1608595f5ddec8395bc0eb2dca33dc7c0ae8103ece2d2673aa855459a"},

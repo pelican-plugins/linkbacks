@@ -1,7 +1,8 @@
 <!-- Next:
 - write code & tests
-- update dev-status in README&.toml + publish on Pypi + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools & https://github.com/getpelican/pelican/wiki/Powered-by-Pelican
-- setup cache & where to put it ? -> ask reco on GitHub pelican-plugins
+- update dev-status in README & pyproject.toml + publish on Pypi + mention it on open-source.md blog page
+  + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools & https://github.com/getpelican/pelican/wiki/Powered-by-Pelican
+- relire: https://www.la-grange.net/2013/12/18/commentaire
 -->
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
 [![TravisCI build](https://travis-ci.org/pelican-plugins/linkbacks.svg?branch=master)](https://travis-ci.org/pelican-plugins/linkbacks)
@@ -13,11 +14,17 @@ on the linking server side.
 **Development status:** work-in-progress
 
 Protocols currently implemented:
-- ❌ Refback: won't be implemented because it requires to retrieve the HTTP `Referer` header,
+- [ ] XMLRPC Pingback: [protocol spec](http://www.hixie.ch/specs/pingback/pingback)
+- [ ] [semantic RESTful Pingback](http://www.w3.org/wiki/Pingback)
+- [ ] Trackback: [protocol spec](http://archive.cweiske.de/trackback/trackback-1.2.html)
+- [x] [Webmention](https://indieweb.org/Webmention): [protocol spec](https://github.com/converspace/webmention)
+
+❌ Refback: won't be implemented because it requires to retrieve the HTTP `Referer` header,
 which cannot be done by Pelican, a static blog engine
-- [ ] Pingback
-- [ ] Trackback
-- [ ] [Webmention](https://indieweb.org/Webmention): [protocol spec](https://github.com/converspace/webmention)
+
+❌ TalkBack: won't be implemented because it did not gain enough popularity / traction since its birth in 2011
+
+Do not hesitate to suggest other protocols by submitting an _issue_.
 
 ## What are linkbacks?
 
@@ -45,9 +52,10 @@ To enable this plugin, `git clone` this repository and add the following to your
 
 `PLUGIN_PATH` can be a path relative to your settings file or an absolute path.
 
-You will also need to install the Pypi dependencies listed in `requirements.txt`:
+You will also need to install the Pypi dependencies listed in `pyproject.toml`:
 
-    pip install -r requirements.txt
+    pip install poetry
+    poetry install
 
 
 ### Cache
@@ -61,7 +69,10 @@ per article `slug`.
 ### Configuration
 Available options:
 
-- `LINKBACKS_USERAGENT` (optional, default: `'pelican-plugin-linkbacks'`) : 
+- `LINKBACKS_CACHE_FILEPATH` (optional, default: relies on `appdirs.cache`, `~/.cache/pelican-plugin-linkbacks.json` under Unix) :
+  the location of the JSON filepath serving as cache / state for this hook.
+- `LINKBACKS_USERAGENT` (optional, default: `pelican-plugin-linkbacks`) :
+  the `User-Agent` HTTP header to use while sending notifications.
 
 
 ## Contributing

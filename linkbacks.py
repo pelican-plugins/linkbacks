@@ -1,47 +1,92 @@
-from concurrent.futures import as_completed
-import logging
+from datetime import datetime
+import json, logging, os
 
+from bs4 import BeautifulSoup
 from pelican import signals
 from pelican.generators import ArticlesGenerator
-
-import requests
-from requests_futures.sessions import FuturesSession
-
 from ronkyuu.webmention import sendWebmention
 
 
+DEFAULT_CACHE_FILEPATH = '~/.cache/pelican-plugin-linkbacks.json'  # TODO: use appdirs package
 DEFAULT_USER_AGENT = 'pelican-plugin-linkbacks'
+TIMEOUT = 3
+
 LOGGER = logging.getLogger(__name__)
 
-
 def process_all_articles_linkbacks(generators):
+    'Just to ease testing, returns (linkback_requests_made, linkback_requests_successful)'
+    start_time = datetime.now()
     article_generator = next(g for g in generators if isinstance(g, ArticlesGenerator))
+
     settings = article_generator.settings
+    cache_filepath = settings.get('LINKBACKS_CACHE_FILEPATH', DEFAULT_CACHE_FILEPATH)
+
+    # Loading the cache:
+    try:
+        with open(cache_filepath) as cache_file:
+            cache = json.load(cache_file)
+    except FileNotFoundError:
+        cache = {}
+
+    linkback_requests_made, linkback_requests_successful = 0, 0
+    for article in article_generator.articles:
+        if article.status == 'published':
+            made, successful = process_all_links_of_an_article(article, cache, settings)
+            linkback_requests_made += made
+            linkback_requests_successful += successful
+
+    # Saving the cache:
+    with open(cache_filepath, 'w+') as cache_file:
+        json.dump(cache, cache_file)
+
+    LOGGER.info("Execution took: %s", datetime.now() - start_time)
+    return linkback_requests_made, linkback_requests_successful
+
+def process_all_links_of_an_article(article, cache, settings):
+    siteurl = settings.get('SITEURL', '')
+    source_url = os.path.join(siteurl, article.url)
     user_agent = settings.get('LINKBACKS_USERAGENT', DEFAULT_USER_AGENT)
-    with FuturesSession() as session:
-        all_linkbacks_requests = []
-        for article in article_generator.articles:
-            if article.status == 'published':
-                continue # TODO: parse with beautiful soup, cf. ronkyuu.webmentions.findMentions / https://github.com/silentlamb/pelican-deadlinks/blob/master/deadlinks.py
-                article_links = []
-                for link in article_links:
-                    for sender in (send_pingback, send_trackback, send_webmention):
-                        linkback_request = sender(session, link, user_agent)
-                        if linkback_request:
-                            all_linkbacks_requests.append(linkback_request)
-        for future in as_completed(all_linkbacks_requests):
-            print(future)
+    linkback_requests_made, linkback_requests_successful = 0, 0
+    links_cache = set(cache.get(article.slug, []))
+    doc_soup = BeautifulSoup(article.content, 'html.parser')
+    for anchor in doc_soup('a'):
+        if 'href' not in anchor.attrs:
+            continue
+        link_url = anchor['href']
+        if not link_url.startswith('http'):
+            continue
+        if siteurl and link_url.startswith(siteurl):
+            LOGGER.debug("Link url %s skipped because is starts with %s", link_url, siteurl)
+            continue
+        if link_url in links_cache:
+            LOGGER.debug("Link url %s skipped because it has already been processed (present in cache)", link_url)
+            continue
+        for name, notifier in NOTIFIERS_PER_PROTO_NAME.items():
+            linkback_requests_made += 1
+            if notifier(source_url, link_url, user_agent):
+                LOGGER.info("%s notification sent for URL %s", name, link_url)
+                linkback_requests_successful += 1
+        links_cache.add(link_url)
+    cache[article.slug] = list(links_cache)
+    return linkback_requests_made, linkback_requests_successful
 
+def send_pingback(source_url, target_url, user_agent):
+    pass  # Not implemented yet
 
-def send_pingback(session, source_url, target_url, user_agent):
-    pass
+def send_trackback(source_url, target_url, user_agent):
+    pass  # Not implemented yet
 
-def send_trackback(session, source_url, target_url, user_agent):
-    pass
+def send_webmention(source_url, target_url, user_agent):
+    response, debug_output = sendWebmention(source_url, target_url, test_urls=False, debug=True,
+                                            headers={'User-Agent': user_agent}, timeout=TIMEOUT)
+    if response:
+        LOGGER.debug("Webmention endpoint response: %s", response.text)
+    else:
+        LOGGER.error("Failed to send webmention for link url %s: %s", target_url, ' - '.join(debug_output))
+    return response
 
-def send_webmention(session, source_url, target_url, user_agent):
-    # TODO: inject session through mock.patch
-    sendWebmention(source_url, target_url, test_urls=True, headers={'User-Agent': user_agent}, timeout=5)
+NOTIFIERS_PER_PROTO_NAME = {"Pingback": send_pingback, "Traceback": send_trackback, "Webmention": send_webmention}
+NOTIFIERS_PER_PROTO_NAME = {"Webmention": send_webmention}  # tmp override
 
 
 def register():
