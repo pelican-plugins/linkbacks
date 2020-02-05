@@ -4,7 +4,7 @@ import httpretty
 from pelican.generators import ArticlesGenerator
 from pelican.tests.support import get_settings
 
-from linkbacks import process_all_articles_linkbacks, DEFAULT_CACHE_FILEPATH, LOGGER
+from linkbacks import process_all_articles_linkbacks, CACHE_FILENAME, LOGGER
 
 
 CUR_DIR = os.path.dirname(__file__)
@@ -64,7 +64,9 @@ def _setup_ok_http_mocks():
 
 def _build_article_generator(content_path, tmpdir, site_url='http://localhost/blog/'):
     settings = get_settings(filenames={})
-    settings['LINKBACKS_CACHE_FILEPATH'] = str(tmpdir.join(os.path.basename(DEFAULT_CACHE_FILEPATH)))
+    if not os.path.isdir(settings['CACHE_PATH']):
+        os.mkdir(settings['CACHE_PATH'])
+    os.remove(os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME))
     settings['SITEURL'] = site_url
     context = settings.copy()
     context['generated_content'] = dict()

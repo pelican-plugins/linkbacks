@@ -63,14 +63,13 @@ In order to avoid the repetitive CPU / bandwidth cost of repeatedly performing l
 this hook only proceed to do so once, the first time an article is published.
 
 In order to do so, it uses a very simple and small cache that contains the list of all hyperlinks already parsed,
-per article `slug`.
+per article `slug`. This JSON file is stored at `$CACHE_PATH/pelican-plugin-linkbacks.json`,
+where `$CACHE_PATH` is [a Pelican setting](https://docs.getpelican.com/en/latest/settings.html).
 
 
 ### Configuration
 Available options:
 
-- `LINKBACKS_CACHE_FILEPATH` (optional, default: relies on `appdirs.cache`, `~/.cache/pelican-plugin-linkbacks.json` under Unix) :
-  the location of the JSON filepath serving as cache / state for this hook.
 - `LINKBACKS_USERAGENT` (optional, default: `pelican-plugin-linkbacks`) :
   the `User-Agent` HTTP header to use while sending notifications.
 

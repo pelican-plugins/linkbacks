@@ -7,7 +7,7 @@ from pelican.generators import ArticlesGenerator
 from ronkyuu.webmention import sendWebmention
 
 
-DEFAULT_CACHE_FILEPATH = '~/.cache/pelican-plugin-linkbacks.json'  # TODO: use appdirs package
+CACHE_FILENAME = 'pelican-plugin-linkbacks.json'
 DEFAULT_USER_AGENT = 'pelican-plugin-linkbacks'
 TIMEOUT = 3
 
@@ -19,7 +19,7 @@ def process_all_articles_linkbacks(generators):
     article_generator = next(g for g in generators if isinstance(g, ArticlesGenerator))
 
     settings = article_generator.settings
-    cache_filepath = settings.get('LINKBACKS_CACHE_FILEPATH', DEFAULT_CACHE_FILEPATH)
+    cache_filepath = os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME)
 
     # Loading the cache:
     try:
