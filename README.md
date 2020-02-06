@@ -1,5 +1,6 @@
 <!-- Next:
 - write code & tests
+- test it on ludochaordic
 - update dev-status in README & pyproject.toml + publish on Pypi + mention it on open-source.md blog page
   + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools & https://github.com/getpelican/pelican/wiki/Powered-by-Pelican
 - relire: https://www.la-grange.net/2013/12/18/commentaire
