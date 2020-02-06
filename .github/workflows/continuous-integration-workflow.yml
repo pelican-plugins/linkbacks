@@ -11,6 +11,13 @@ jobs:
         uses: actions/setup-python@v1.1.1
         with:
           python-version: 3.7
+      - name: Restore dependencies cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install dependencies
         run: |
           python -m pip install -U pip poetry
@@ -19,7 +26,7 @@ jobs:
       - name: Linter
         run: |
           type -a python
-          pyhon -c 'from bs4 import BeautifulSoup'
+          python -c 'from bs4 import BeautifulSoup'
           type -a pylint
           hash pylint
           pylint *linkbacks.py
