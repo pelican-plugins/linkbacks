@@ -11,7 +11,7 @@ jobs:
         uses: actions/setup-python@v1.1.1
         with:
           python-version: 3.7
-      - name: Dependencies cache
+      - name: Pip dependencies cache
         # Attempt to restore an existing cache
         uses: actions/cache@v1.1.2
         with:
@@ -19,6 +19,14 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('dev-requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+      - name: Virtualenvs dependencies cache
+        # Attempt to restore an existing cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-virtualenvs-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('dev-requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-virtualenvs-
       - name: Install dependencies
         run: |
           python -m pip install -U pip poetry
@@ -27,8 +35,9 @@ jobs:
           pip install -r dev-requirements.txt
       - name: Linter
         run: |
-          echo $VIRTUAL_ENV
           source $(poetry env info --path)/bin/activate
           pylint *linkbacks.py
       - name: Tests
-        run: py.test
+        run: |
+          source $(poetry env info --path)/bin/activate
+          py.test
