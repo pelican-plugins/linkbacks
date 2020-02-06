@@ -64,9 +64,7 @@ def _setup_ok_http_mocks():
 
 def _build_article_generator(content_path, tmpdir, site_url='http://localhost/blog/'):
     settings = get_settings(filenames={})
-    if not os.path.isdir(settings['CACHE_PATH']):
-        os.mkdir(settings['CACHE_PATH'])
-    os.remove(os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME))
+    _setup_cache_dir(settings['CACHE_PATH'])
     settings['SITEURL'] = site_url
     context = settings.copy()
     context['generated_content'] = dict()
@@ -76,3 +74,11 @@ def _build_article_generator(content_path, tmpdir, site_url='http://localhost/bl
         path=content_path, theme=settings['THEME'], output_path=str(tmpdir))
     article_generator.generate_context()
     return article_generator
+
+def _setup_cache_dir(cache_dir_path):
+    if not os.path.isdir(cache_dir_path):
+        os.mkdir(cache_dir_path)
+    try:
+        os.remove(os.path.join(cache_dir_path, CACHE_FILENAME))
+    except FileNotFoundError:
+        pass
