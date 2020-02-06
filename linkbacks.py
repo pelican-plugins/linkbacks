@@ -61,32 +61,29 @@ def process_all_links_of_an_article(article, cache, settings):
         if link_url in links_cache:
             LOGGER.debug("Link url %s skipped because it has already been processed (present in cache)", link_url)
             continue
-        for name, notifier in NOTIFIERS_PER_PROTO_NAME.items():
+        for notifier in (send_webmention,): # send_pingback, send_trackback
             linkback_requests_made += 1
             if notifier(source_url, link_url, user_agent):
-                LOGGER.info("%s notification sent for URL %s", name, link_url)
                 linkback_requests_successful += 1
         links_cache.add(link_url)
     cache[article.slug] = list(links_cache)
     return linkback_requests_made, linkback_requests_successful
 
+def send_webmention(source_url, target_url, user_agent):
+    response, debug_output = sendWebmention(source_url, target_url, test_urls=False, debug=True,
+                                            headers={'User-Agent': user_agent}, timeout=TIMEOUT)
+    if response:
+        LOGGER.info("Webmention notification sent for URL %s, endpoint response: %s", target_url, response.text)
+        return True
+    LOGGER.error("Failed to send webmention for link url %s: %s", target_url, ' - '.join(debug_output))
+    return False
+
+# pylint: disable=unused-argument
 def send_pingback(source_url, target_url, user_agent):
     pass  # Not implemented yet
 
 def send_trackback(source_url, target_url, user_agent):
     pass  # Not implemented yet
-
-def send_webmention(source_url, target_url, user_agent):
-    response, debug_output = sendWebmention(source_url, target_url, test_urls=False, debug=True,
-                                            headers={'User-Agent': user_agent}, timeout=TIMEOUT)
-    if response:
-        LOGGER.debug("Webmention endpoint response: %s", response.text)
-    else:
-        LOGGER.error("Failed to send webmention for link url %s: %s", target_url, ' - '.join(debug_output))
-    return response
-
-NOTIFIERS_PER_PROTO_NAME = {"Pingback": send_pingback, "Traceback": send_trackback, "Webmention": send_webmention}
-NOTIFIERS_PER_PROTO_NAME = {"Webmention": send_webmention}  # tmp override
 
 
 def register():

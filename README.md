@@ -6,7 +6,7 @@
 - relire: https://www.la-grange.net/2013/12/18/commentaire
 -->
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
-[![TravisCI build](https://travis-ci.org/pelican-plugins/linkbacks.svg?branch=master)](https://travis-ci.org/pelican-plugins/linkbacks)
+![build status](https://github.com/pelican-plugins/linkbacks/workflows/build/badge.svg)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 [Pelican](https://getpelican.com) plugin implementing [Linkback](https://en.wikipedia.org/wiki/Linkback) protocols,
