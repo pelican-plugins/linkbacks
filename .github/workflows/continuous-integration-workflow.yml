@@ -11,7 +11,8 @@ jobs:
         uses: actions/setup-python@v1.1.1
         with:
           python-version: 3.7
-      - name: Restore dependencies cache
+      - name: Dependencies cache
+        # Attempt to restore an existing cache
         uses: actions/cache@v1.1.2
         with:
           path: ~/.cache/pip
@@ -22,7 +23,9 @@ jobs:
         run: |
           python -m pip install -U pip poetry
           poetry install
+          python -c 'from bs4 import BeautifulSoup'
           pip install -r dev-requirements.txt
+          python -c 'from bs4 import BeautifulSoup'
       - name: Linter
         run: |
           type -a python
