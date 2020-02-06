@@ -17,6 +17,11 @@ jobs:
           poetry install
           pip install -r dev-requirements.txt
       - name: Linter
-        run: pylint *linkbacks.py
+        run: |
+          type -a python
+          pyhon -c 'from bs4 import BeautifulSoup'
+          type -a pylint
+          hash pylint
+          pylint *linkbacks.py
       - name: Tests
         run: py.test
