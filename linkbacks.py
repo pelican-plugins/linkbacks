@@ -73,7 +73,7 @@ def process_all_links_of_an_article(article, cache, settings):
         if siteurl and link_url.startswith(siteurl):
             LOGGER.debug("Link url %s skipped because is starts with %s", link_url, siteurl)
             continue
-        if splitext(link_url)[1] in ('gif', 'jpg', 'pdf', 'png', 'svg'):
+        if splitext(link_url)[1] in ('.gif', '.jpg', '.pdf', '.png', '.svg'):
             LOGGER.debug("Link url %s skipped because it appears to be an image or PDF file", link_url)
             continue
         if link_url in links_cache:
