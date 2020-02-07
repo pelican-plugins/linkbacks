@@ -1,7 +1,6 @@
 <!-- Next:
 - implement Trackback protocol: requires to parse embedded RDF documents, enclosed in HTML comments as a fallback
-- test it on ludochaordic
-- update dev status in pyproject.toml + publish on Pypi + mention it on open-source.md blog page
+- update dev status in pyproject.toml + publish on Pypi
   + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools
   & https://github.com/getpelican/pelican/wiki/Powered-by-Pelican
   & https://indieweb.org/Webmention#Others
@@ -16,10 +15,10 @@ on the linking server side.
 
 Protocols currently implemented:
 - [x] XMLRPC Pingback: [protocol spec](http://www.hixie.ch/specs/pingback/pingback)
-- [x] [Webmention](https://indieweb.org/Webmention): [protocol spec](https://github.com/converspace/webmention) [W3C Recommendation](https://www.w3.org/TR/2017/REC-webmention-20170112/)
-- [ ] semantic RESTful Pingback: [spec](https://aksw.github.io/SemanticPingback/) - [W3C page](http://www.w3.org/wiki/Pingback)
+- [x] [Webmention](https://indieweb.org/Webmention): [protocol spec](https://github.com/converspace/webmention) - [W3C Recommendation](https://www.w3.org/TR/2017/REC-webmention-20170112/)
+- [ ] semantic RESTful Pingback: [protocol spec](https://aksw.github.io/SemanticPingback/) - [W3C page](http://www.w3.org/wiki/Pingback)
 - [ ] Trackback: [protocol spec](http://archive.cweiske.de/trackback/trackback-1.2.html)
-- [ ] `weblogUpates.ping`: [original spec (archive)](https://web.archive.org/web/20190804213516/http://xmlrpc.scripting.com/weblogsCom.html)
+- [ ] `weblogUpates.ping`: [protocol spec (archive)](https://web.archive.org/web/20190804213516/http://xmlrpc.scripting.com/weblogsCom.html)
 
 ❌ Refback: won't be implemented because it requires to retrieve the HTTP `Referer` header,
 which cannot be done by Pelican, a static blog engine

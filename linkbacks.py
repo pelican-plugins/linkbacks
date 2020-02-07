@@ -33,16 +33,19 @@ def process_all_articles_linkbacks(generators):
     except FileNotFoundError:
         cache = {}
 
+    original_cache_links_count = sum(len(urls) for slug, urls in cache.items())
     successful_notifs_count = 0
     for article in article_generator.articles:
         if article.status == 'published':
             successful_notifs_count += process_all_links_of_an_article(article, cache, settings)
+    new_cache_links_count = sum(len(urls) for slug, urls in cache.items())
 
     # Saving the cache:
     with open(cache_filepath, 'w+') as cache_file:
         json.dump(cache, cache_file)
 
-    LOGGER.info("Execution took: %s", datetime.now() - start_time)
+    LOGGER.info("Execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",
+                datetime.now() - start_time, new_cache_links_count - original_cache_links_count, successful_notifs_count)
     return successful_notifs_count
 
 def process_all_links_of_an_article(article, cache, settings):
@@ -56,7 +59,7 @@ def process_all_links_of_an_article(article, cache, settings):
         if 'href' not in anchor.attrs:
             continue
         link_url = anchor['href']
-        if not link_url.startswith('http'):
+        if not link_url.startswith('http'):  # this effectively exclude relative links
             continue
         if siteurl and link_url.startswith(siteurl):
             LOGGER.debug("Link url %s skipped because is starts with %s", link_url, siteurl)
@@ -64,6 +67,7 @@ def process_all_links_of_an_article(article, cache, settings):
         if link_url in links_cache:
             LOGGER.debug("Link url %s skipped because it has already been processed (present in cache)", link_url)
             continue
+        LOGGER.debug("Now attempting to send Linkbacks for link url %s", link_url)
         for notifier in (send_pingback, send_webmention): #, send_trackback):
             if notifier(source_url, link_url, user_agent):
                 successful_notifs_count += 1
