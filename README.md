@@ -1,4 +1,5 @@
 <!-- Next:
+- test it with at least ONE WordPress blog
 - implement Trackback protocol: requires to parse embedded RDF documents, enclosed in HTML comments as a fallback
 - update dev status in pyproject.toml + publish on Pypi
   + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools
@@ -44,6 +45,11 @@ This plugin **does not** perform inclusion of Linkbacks **in your articles / as 
 for every website referencing your content following a Linkback protocol,
 because this cannot be performed by a static website generator like Pelican.
 
+When you enable this plugin the first time, it will process all the hyperlinks of your existing articles.
+It will do it only once, and then create a cache file to avoid processing those links next time.
+Still, because the `publish` step will be longer than usual the first time you enable this plugin,
+I recommend to use `pelican -D` flag to get debug logs, and hence follow the plugin progress.
+
 
 ## Installation / setup instructions
 To enable this plugin, `git clone` this repository and add the following to your `publishconf.py`:
@@ -64,13 +70,15 @@ In order to avoid the repetitive CPU / bandwidth cost of repeatedly performing l
 this hook only proceed to do so once, the first time an article is published.
 
 In order to do so, it uses a very simple and small cache that contains the list of all hyperlinks already parsed,
-per article `slug`. This JSON file is stored at `$CACHE_PATH/pelican-plugin-linkbacks.json`,
-where `$CACHE_PATH` is [a Pelican setting](https://docs.getpelican.com/en/latest/settings.html).
+per article `slug`.
 
 
 ### Configuration
 Available options:
 
+- `LINKBACKS_CACHEPATH` (optional, default: `$CACHE_PATH/pelican-plugin-linkbacks.json`,
+where `$CACHE_PATH` is [a Pelican setting](https://docs.getpelican.com/en/latest/settings.html)) :
+  the path to the JSON file containg this plugin cache (a list of URLs already processed).
 - `LINKBACKS_USERAGENT` (optional, default: `pelican-plugin-linkbacks`) :
   the `User-Agent` HTTP header to use while sending notifications.
 

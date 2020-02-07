@@ -25,7 +25,7 @@ def process_all_articles_linkbacks(generators):
     article_generator = next(g for g in generators if isinstance(g, ArticlesGenerator))
 
     settings = article_generator.settings
-    cache_filepath = os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME)
+    cache_filepath = settings.get('LINKBACKS_CACHEPATH', os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME))
 
     # Loading the cache:
     try:
@@ -45,7 +45,7 @@ def process_all_articles_linkbacks(generators):
     with open(cache_filepath, 'w+') as cache_file:
         json.dump(cache, cache_file)
 
-    LOGGER.info("Execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",
+    LOGGER.info("Linkback plugin execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",
                 datetime.now() - start_time, new_cache_links_count - original_cache_links_count, successful_notifs_count)
     return successful_notifs_count
 
@@ -64,6 +64,9 @@ def process_all_links_of_an_article(article, cache, settings):
             continue
         if siteurl and link_url.startswith(siteurl):
             LOGGER.debug("Link url %s skipped because is starts with %s", link_url, siteurl)
+            continue
+        if link_url.endswith('.pdf'):
+            LOGGER.debug("Link url %s skipped because it appears to be a PDF file", link_url)
             continue
         if link_url in links_cache:
             LOGGER.debug("Link url %s skipped because it has already been processed (present in cache)", link_url)
@@ -171,5 +174,12 @@ def register():
 if __name__ == '__main__':
     # Some integrations tests that used to fail:
     logging.basicConfig(level=logging.DEBUG)
-    send_pingback('https://chezsoi.org/lucas/blog/minutes-of-the-fosdem-2020-conference.html',
-                  'https://dpya.org/en/images/2/2b/Opensources_bw.pdf', DEFAULT_USER_AGENT)
+    # Many Wordpress websites answer a faultCode 0 with no message, due to the default value of xmlrpc_pingback_error :(
+    send_pingback('https://chezsoi.org/lucas/blog/face-au-titan.html',
+                  'https://www.500nuancesdegeek.fr/sword-without-master', DEFAULT_USER_AGENT)
+    # ArtStation is protected by CloudFare and keep responding 403s...
+    send_pingback('https://chezsoi.org/lucas/blog/porte-monstre-trophee-dore.html',
+                  'https://www.artstation.com/artwork/VXe5N', DEFAULT_USER_AGENT)
+    # Local testing with Wordpress Docker image:
+    send_pingback('http://host.docker.internal:5500/OriMushi/',
+                  'http://localhost/2020/02/07/test-article/', DEFAULT_USER_AGENT)
