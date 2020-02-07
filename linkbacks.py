@@ -92,7 +92,7 @@ def send_pingback(source_url, target_url, user_agent):
         # Pingback server autodiscovery:
         resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent)
         server_uri = resp_headers.get('X-Pingback')
-        if not server_uri and resp_headers.get('Content-Type') == 'text/html':
+        if not server_uri and resp_headers.get('Content-Type', '').startswith('text/html'):
             # As a falback, we try parsing the HTML, looking for <link> elements
             doc_soup = BeautifulSoup(resp_content, BS4_HTML_PARSER)
             link = doc_soup.find(rel='pingback', href=True)
@@ -101,7 +101,8 @@ def send_pingback(source_url, target_url, user_agent):
         if not server_uri:
             return False
         # Performing pingback request:
-        xml_rpc_client = xmlrpc.client.ServerProxy(server_uri, transport=XmlRpcClient(user_agent))
+        transport = SafeXmlRpcTransport(user_agent, TIMEOUT) if server_uri.startswith('https') else XmlRpcTransport(user_agent, TIMEOUT)
+        xml_rpc_client = xmlrpc.client.ServerProxy(server_uri, transport)
         try:
             response = xml_rpc_client.pingback.ping(source_url, target_url)
         except xmlrpc.client.Fault as fault:
@@ -130,7 +131,7 @@ def send_webmention(source_url, target_url, user_agent):
                                   if lh.get('url') and lh.get('rel') in WEBMENTION_POSS_REL)
             except StopIteration:
                 pass
-        if not server_uri and resp_headers.get('Content-Type') == 'text/html':
+        if not server_uri and resp_headers.get('Content-Type', '').startswith('text/html'):
             # As a falback, we try parsing the HTML, looking for <link> elements
             for link in BeautifulSoup(resp_content, BS4_HTML_PARSER).find_all(rel=WEBMENTION_POSS_REL, href=True):
                 if link.get('href'):
@@ -167,16 +168,23 @@ def requests_get_with_max_size(url, user_agent):
 class ResponseTooBig(Exception):
     pass
 
-class XmlRpcClient(xmlrpc.client.Transport):
-    def __init__(self, user_agent):
+class CustomUserAgentAndTimeoutMixin:
+    def __init__(self, user_agent, timeout):
         super().__init__()
         # Shadows parent class attribute:
         self.user_agent = user_agent
+        self.timeout = timeout
 
     def make_connection(self, host):
         conn = super().make_connection(host)
-        conn.timeout = TIMEOUT
+        conn.timeout = self.timeout
         return conn
+
+class XmlRpcTransport(xmlrpc.client.Transport, CustomUserAgentAndTimeoutMixin):
+    pass
+
+class SafeXmlRpcTransport(xmlrpc.client.SafeTransport, CustomUserAgentAndTimeoutMixin):
+    pass
 
 # pylint: disable=unused-argument
 def send_trackback(source_url, target_url, user_agent):
@@ -189,6 +197,11 @@ def register():
 if __name__ == '__main__':
     # Some integrations tests that used to fail:
     logging.basicConfig(level=logging.DEBUG)
+    LOGGER.setLevel(logging.DEBUG)
+    # Handling 301 redirects to HTTPS
+    # Now getting "Invalid discovery target" errors, probably due to akismet: https://github.com/wp-plugins/akismet/blob/master/class.akismet.php#L1099
+    send_pingback('https://chezsoi.org/lucas/blog/lassassin-de-la-reine.html',
+                  'https://www.evilhat.com/home/for-the-queen', DEFAULT_USER_AGENT)
     # Many Wordpress websites answer a faultCode 0 with no message, due to the default value of xmlrpc_pingback_error :(
     send_pingback('https://chezsoi.org/lucas/blog/face-au-titan.html',
                   'https://www.500nuancesdegeek.fr/sword-without-master', DEFAULT_USER_AGENT)
