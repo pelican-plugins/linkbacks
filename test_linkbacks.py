@@ -43,8 +43,8 @@ def test_ignore_internal_links(tmpdir, caplog):
 def test_link_host_not_reachable(tmpdir, caplog):
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
-    assert 'Failed to send Pingback for link url http://localhost/sub/some-page.html' in caplog.text
-    assert 'Failed to send WebMention for link url http://localhost/sub/some-page.html' in caplog.text
+    assert 'Failed to retrieve web page for link url http://localhost/sub/some-page.html' in caplog.text
+    assert 'Failed to retrieve web page for link url http://localhost/sub/some-page.html' in caplog.text
     assert 'ConnectionError' in caplog.text
 
 @httpretty.activate

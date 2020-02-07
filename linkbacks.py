@@ -35,7 +35,6 @@ def process_all_articles_linkbacks(generators):
     settings = article_generator.settings
     cache_filepath = settings.get('LINKBACKS_CACHEPATH', os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME))
 
-    # Loading the cache:
     try:
         with open(cache_filepath) as cache_file:
             cache = json.load(cache_file)
@@ -44,18 +43,17 @@ def process_all_articles_linkbacks(generators):
 
     original_cache_links_count = sum(len(urls) for slug, urls in cache.items())
     successful_notifs_count = 0
-    for article in article_generator.articles:
-        if article.status == 'published':
-            successful_notifs_count += process_all_links_of_an_article(article, cache, settings)
-    new_cache_links_count = sum(len(urls) for slug, urls in cache.items())
-
-    # Saving the cache:
-    with open(cache_filepath, 'w+') as cache_file:
-        json.dump(cache, cache_file)
-
-    LOGGER.info("Linkback plugin execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",
-                datetime.now() - start_time, new_cache_links_count - original_cache_links_count, successful_notifs_count)
-    return successful_notifs_count
+    try:
+        for article in article_generator.articles:
+            if article.status == 'published':
+                successful_notifs_count += process_all_links_of_an_article(article, cache, settings)
+        return successful_notifs_count
+    finally:  # We save the cache & log our progress even in case of an interruption:
+        with open(cache_filepath, 'w+') as cache_file:
+            json.dump(cache, cache_file)
+        new_cache_links_count = sum(len(urls) for slug, urls in cache.items())
+        LOGGER.info("Linkback plugin execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",
+                    datetime.now() - start_time, new_cache_links_count - original_cache_links_count, successful_notifs_count)
 
 def process_all_links_of_an_article(article, cache, settings):
     siteurl = settings.get('SITEURL', '')
@@ -80,17 +78,23 @@ def process_all_links_of_an_article(article, cache, settings):
             LOGGER.debug("Link url %s skipped because it has already been processed (present in cache)", link_url)
             continue
         LOGGER.debug("Now attempting to send Linkbacks for link url %s", link_url)
+        try:
+            resp_content, resp_headers = requests_get_with_max_size(link_url, user_agent)
+        except Exception as error:
+            LOGGER.debug("Failed to retrieve web page for link url %s: [%s] %s", link_url, error.__class__.__name__, error)
+            continue
         for notifier in (send_pingback, send_webmention): #, send_trackback):
-            if notifier(source_url, link_url, user_agent):
+            if notifier(source_url, link_url, resp_content, resp_headers):
                 successful_notifs_count += 1
         links_cache.add(link_url)
     cache[article.slug] = list(links_cache)
     return successful_notifs_count
 
-def send_pingback(source_url, target_url, user_agent):
+def send_pingback(source_url, target_url, resp_content=None, resp_headers=None, user_agent=None):
     try:
+        if resp_content is None:
+            resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent)
         # Pingback server autodiscovery:
-        resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent)
         server_uri = resp_headers.get('X-Pingback')
         if not server_uri and resp_headers.get('Content-Type', '').startswith('text/html'):
             # As a falback, we try parsing the HTML, looking for <link> elements
@@ -107,23 +111,25 @@ def send_pingback(source_url, target_url, user_agent):
             response = xml_rpc_client.pingback.ping(source_url, target_url)
         except xmlrpc.client.Fault as fault:
             if fault.faultCode == 48:  # pingback already registered
-                LOGGER.debug("Pingback already registered, XML-RPC response: code=%s - %s", fault.faultCode, fault.faultString)
+                LOGGER.debug("Pingback already registered for URL %s, XML-RPC response: code=%s - %s", target_url, fault.faultCode, fault.faultString)
             else:
-                LOGGER.error("Pingback XML-RPC request failed: code=%s - %s", fault.faultCode, fault.faultString)
+                LOGGER.error("Pingback XML-RPC request failed for URL %s: code=%s - %s", target_url, fault.faultCode, fault.faultString)
             return False
         LOGGER.info("Pingback notification sent for URL %s, endpoint response: %s", target_url, response)
         return True
     except (ConnectionError, HTTPError, RequestException, ResponseTooBig, SSLError) as error:
         LOGGER.error("Failed to send Pingback for link url %s: [%s] %s", target_url, error.__class__.__name__, error)
+        return False
     except Exception:  # unexpected exception => we display the stacktrace:
         LOGGER.exception("Failed to send Pingback for link url %s", target_url)
         return False
 
-def send_webmention(source_url, target_url, user_agent):
+def send_webmention(source_url, target_url, resp_content=None, resp_headers=None, user_agent=None):
     try:
+        if resp_content is None:
+            resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent)
         # WebMention server autodiscovery:
         server_uri = None
-        resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent)
         link_header = resp_headers.get('Link')
         if link_header:
             try:
@@ -147,6 +153,7 @@ def send_webmention(source_url, target_url, user_agent):
         return True
     except (ConnectionError, HTTPError, RequestException, ResponseTooBig, SSLError) as error:
         LOGGER.error("Failed to send WebMention for link url %s: [%s] %s", target_url, error.__class__.__name__, error)
+        return False
     except Exception:  # unexpected exception => we display the stacktrace:
         LOGGER.exception("Failed to send WebMention for link url %s", target_url)
         return False
@@ -154,9 +161,10 @@ def send_webmention(source_url, target_url, user_agent):
 
 GET_CHUNK_SIZE = 2**10
 MAX_RESPONSE_LENGTH = 2**20
-def requests_get_with_max_size(url, user_agent):
+def requests_get_with_max_size(url, user_agent=None):
     'cf. https://benbernardblog.com/the-case-of-the-mysterious-python-crash/'
-    with closing(requests.get(url, stream=True, headers={'User-Agent': user_agent}, timeout=TIMEOUT)) as response:
+    with closing(requests.get(url, stream=True, timeout=TIMEOUT,
+                              headers={'User-Agent': user_agent} if user_agent else {})) as response:
         response.raise_for_status()
         content = ''
         for chunk in response.iter_content(chunk_size=GET_CHUNK_SIZE, decode_unicode=True):
@@ -187,7 +195,7 @@ class SafeXmlRpcTransport(xmlrpc.client.SafeTransport, CustomUserAgentAndTimeout
     pass
 
 # pylint: disable=unused-argument
-def send_trackback(source_url, target_url, user_agent):
+def send_trackback(source_url, target_url, resp_content=None, resp_headers=None, user_agent=None):
     pass  # Not implemented yet
 
 def register():
