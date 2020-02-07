@@ -17,50 +17,136 @@ def setup():
 
 @httpretty.activate
 def test_ok(tmpdir):
-    _setup_ok_http_mocks()
+    _setup_http_mocks()
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
-    linkback_requests_made, linkback_requests_successful = process_all_articles_linkbacks([article_generator])
-    assert linkback_requests_made == 1
-    assert linkback_requests_successful == 1
+    assert process_all_articles_linkbacks([article_generator]) == 2
+
+@httpretty.activate
+def test_ok_zero_linkbacks(tmpdir):
+    _setup_http_mocks(pingback=(), webmention=())
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 0
 
 @httpretty.activate
 def test_cache(tmpdir, caplog):
-    _setup_ok_http_mocks()
+    _setup_http_mocks()
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
-    linkback_requests_made, linkback_requests_successful = process_all_articles_linkbacks([article_generator])
-    assert linkback_requests_made == 1
-    assert linkback_requests_successful == 1
-    linkback_requests_made, linkback_requests_successful = process_all_articles_linkbacks([article_generator])
-    assert linkback_requests_made == 0
+    assert process_all_articles_linkbacks([article_generator]) == 2
+    assert process_all_articles_linkbacks([article_generator]) == 0
     assert 'Link url http://localhost/sub/some-page.html skipped because it has already been processed (present in cache)' in caplog.text
 
 def test_ignore_internal_links(tmpdir, caplog):
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir, site_url='http://localhost/sub/')
-    linkback_requests_made, _ = process_all_articles_linkbacks([article_generator])
-    assert linkback_requests_made == 0
+    assert process_all_articles_linkbacks([article_generator]) == 0
     assert 'Link url http://localhost/sub/some-page.html skipped because is starts with http://localhost/sub/' in caplog.text
 
 def test_link_host_not_reachable(tmpdir, caplog):
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
-    linkback_requests_made, linkback_requests_successful = process_all_articles_linkbacks([article_generator])
-    assert linkback_requests_made == 1
-    assert linkback_requests_successful == 0
-    assert 'Failed to send webmention for link url http://localhost/sub/some-page.html: exception during GET request' in caplog.text
-    # Better assertion, pending https://github.com/bear/ronkyuu/pull/25 :
-    # assert 'Failed to send webmention for link url http://localhost/sub/some-page.html: exception during POST request: ConnectionError' in caplog.text
+    assert process_all_articles_linkbacks([article_generator]) == 0
+    assert 'Failed to send Pingback for link url http://localhost/sub/some-page.html' in caplog.text
+    assert 'Failed to send WebMention for link url http://localhost/sub/some-page.html' in caplog.text
+    assert 'ConnectionRefusedError' in caplog.text
 
+@httpretty.activate
+def test_pingback_ok_without_http_header(tmpdir):
+    _setup_http_mocks(pingback=('link',), webmention=())
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 1
 
-def _setup_ok_http_mocks():
-    # Webmention:
+@httpretty.activate
+def test_webmention_ok_without_http_header(tmpdir):
+    _setup_http_mocks(pingback=(), webmention=('link',))
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 1
+
+@httpretty.activate
+def test_pingback_http_error(tmpdir, caplog):
+    _setup_http_mocks(pingback=('header', 'http_error'), webmention=())
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 0
+    assert 'Failed to send Pingback for link url http://localhost/sub/some-page.html' in caplog.text
+    assert '503 Server Error' in caplog.text
+
+@httpretty.activate
+def test_pingback_xmlrpc_error(tmpdir, caplog):
+    _setup_http_mocks(pingback=('header', 'xmlrpc_error'), webmention=())
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 0
+    assert 'Pingback XML-RPC request failed: code=0 - Unexpected error.' in caplog.text
+
+@httpretty.activate
+def test_pingback_already_registered(tmpdir, caplog):
+    _setup_http_mocks(pingback=('header', 'already_registered'), webmention=())
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 0
+    assert 'Pingback already registered, XML-RPC response: code=48 - The pingback has already been registered.' in caplog.text
+
+@httpretty.activate
+def test_webmention_http_error(tmpdir, caplog):
+    _setup_http_mocks(pingback=(), webmention=('header', 'http_error'))
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 0
+    assert 'Failed to send WebMention for link url http://localhost/sub/some-page.html' in caplog.text
+    assert '503 Server Error' in caplog.text
+
+def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link')):
+    headers = {}
+    if 'header' in pingback:
+        headers['X-Pingback'] = 'http://localhost/sub/pingback-endpoint'
+    if 'header' in webmention:
+        headers['Link'] = '<http://localhost/sub/webmention-endpoint>; rel="webmention"'
     httpretty.register_uri(
         httpretty.GET, 'http://localhost/sub/some-page.html',
-        adding_headers={'Link': '<http://localhost/sub/webmention-endpoint>; rel="webmention"'},
-        body='Dummy linked content'
+        adding_headers=headers,
+        body=_build_html_content(pingback, webmention)
     )
+    # Pingback endpoint:
+    xmlrpc_body = _build_xmlrpc_success('Pingback registered. Keep the web talking! :-)')
+    if 'already_registered' in pingback:
+        xmlrpc_body = _build_xmlrpc_error(fault_code=48, fault_string='The pingback has already been registered.')
+    if 'xmlrpc_error' in pingback:
+        xmlrpc_body = _build_xmlrpc_error(fault_code=0, fault_string='Unexpected error.')
+    httpretty.register_uri(
+        httpretty.POST, 'http://localhost/sub/pingback-endpoint',
+        body=xmlrpc_body,
+        status=503 if 'http_error' in pingback else 200,
+    )
+    # Webmention endpoint:
     httpretty.register_uri(
         httpretty.POST, 'http://localhost/sub/webmention-endpoint',
-        body='http://localhost/sub/alice.host/webmentions/222'
+        body='http://localhost/sub/webmentions/222',
+        status=503 if 'http_error' in webmention else 200,
     )
+
+def _build_html_content(pingback, webmention):
+    return '''<!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Dummy linkback test page</title>
+        {pingback_link}
+        {webmention_link}
+    </head>
+    <body>
+    Dummy linked content
+    </body>'''.format(pingback_link='<link rel="pingback" href="http://localhost/sub/pingback-endpoint">' if 'link' in pingback else '',
+                      webmention_link='<link rel="webmention" href="http://localhost/sub/webmention-endpoint">' if 'link' in webmention else '')
+
+def _build_xmlrpc_success(message):
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+    <methodResponse><params>
+        <param><value><string>{}</string></value></param>
+    </params></methodResponse>'''.format(message)
+
+def _build_xmlrpc_error(fault_code, fault_string):
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+    <methodResponse><fault>
+        <value><struct>
+            <member><name>faultCode</name><value><int>{}</int></value></member>
+            <member><name>faultString</name><value><string>{}</string></value></member>
+        </struct></value>
+    </fault></methodResponse>'''.format(fault_code, fault_string)
 
 def _build_article_generator(content_path, tmpdir, site_url='http://localhost/blog/'):
     settings = get_settings(filenames={})

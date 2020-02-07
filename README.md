@@ -1,8 +1,10 @@
 <!-- Next:
-- write code & tests
+- implement Trackback protocol: requires to parse embedded RDF documents, enclosed in HTML comments as a fallback
 - test it on ludochaordic
-- update dev-status in README & pyproject.toml + publish on Pypi + mention it on open-source.md blog page
-  + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools & https://github.com/getpelican/pelican/wiki/Powered-by-Pelican
+- update dev status in pyproject.toml + publish on Pypi + mention it on open-source.md blog page
+  + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools
+  & https://github.com/getpelican/pelican/wiki/Powered-by-Pelican
+  & https://indieweb.org/Webmention#Others
 - relire: https://www.la-grange.net/2013/12/18/commentaire
 -->
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
@@ -12,13 +14,12 @@
 [Pelican](https://getpelican.com) plugin implementing [Linkback](https://en.wikipedia.org/wiki/Linkback) protocols,
 on the linking server side.
 
-**Development status:** work-in-progress
-
 Protocols currently implemented:
-- [ ] XMLRPC Pingback: [protocol spec](http://www.hixie.ch/specs/pingback/pingback)
-- [ ] [semantic RESTful Pingback](http://www.w3.org/wiki/Pingback)
+- [x] XMLRPC Pingback: [protocol spec](http://www.hixie.ch/specs/pingback/pingback)
+- [x] [Webmention](https://indieweb.org/Webmention): [protocol spec](https://github.com/converspace/webmention) [W3C Recommendation](https://www.w3.org/TR/2017/REC-webmention-20170112/)
+- [ ] semantic RESTful Pingback: [spec](https://aksw.github.io/SemanticPingback/) - [W3C page](http://www.w3.org/wiki/Pingback)
 - [ ] Trackback: [protocol spec](http://archive.cweiske.de/trackback/trackback-1.2.html)
-- [x] [Webmention](https://indieweb.org/Webmention): [protocol spec](https://github.com/converspace/webmention)
+- [ ] `weblogUpates.ping`: [original spec (archive)](https://web.archive.org/web/20190804213516/http://xmlrpc.scripting.com/weblogsCom.html)
 
 ❌ Refback: won't be implemented because it requires to retrieve the HTTP `Referer` header,
 which cannot be done by Pelican, a static blog engine
@@ -89,3 +90,23 @@ To execute them:
 
     pylint *linkbacks.py
     pytest
+
+### Integration tests
+
+You'll find some advices & resources on [indieweb.org](https://indieweb.org):
+[pingback page](https://indieweb.org/pingback), [webmention page](https://indieweb.org/Webmention).
+
+For WebMentions specifically, the [webmention.io](https://webmention.io) service can be useful.
+
+For Pingbacks, I used for my tests a Wordpress instance launched with Docker:
+
+    docker run --rm -p 80:80 -e WORDPRESS_DB_HOST=host.docker.internal -e WORDPRESS_DB_USER=... -e WORDPRESS_DB_PASSWORD=... wordpress
+
+From my experience, you'll also have to:
+- configure a local MySQL database to accept connections from `$WORDPRESS_DB_USER:$WORDPRESS_DB_PASSWORD`
+- configure the `xmlrpc_pingback_error` Wordpress filter to be _passthrough_, to get useful error messages
+- configure the `http_request_host_is_external` Wordpress filter to always return `true`, so that it won't reject `host.docker.internal`
+
+And there is Wordpress client source code:
+- [wp-includes/comment.php](https://github.com/WordPress/WordPress/blob/master/wp-includes/comment.php)
+- [wp-includes/class-wp-xmlrpc-server.php](https://github.com/WordPress/WordPress/blob/master/wp-includes/class-wp-xmlrpc-server.php)

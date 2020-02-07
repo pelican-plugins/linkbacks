@@ -9,7 +9,7 @@ keywords = ["pelican", "plugin", "linkback", "pingback", "trackback", "webmentio
 repository = "https://github.com/pelican-plugins/linkbacks"
 
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Framework :: Pelican",
     "Framework :: Pelican :: Plugins",
@@ -33,8 +33,8 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.6"
-ronkyuu = "^0.7"
 beautifulsoup4 = "^4.8.2"
+requests = "^2.22.0"
 
 [tool.poetry.extras]
 markdown = ["markdown"]
