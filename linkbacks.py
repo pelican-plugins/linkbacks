@@ -1,3 +1,4 @@
+from contextlib import closing
 from datetime import datetime
 import json, logging, os, xmlrpc.client
 from urllib.parse import urljoin
@@ -78,11 +79,11 @@ def process_all_links_of_an_article(article, cache, settings):
 def send_pingback(source_url, target_url, user_agent):
     try:
         # Pingback server autodiscovery:
-        response = requests.get(target_url, headers={'User-Agent': user_agent}, timeout=TIMEOUT)
-        response.raise_for_status()
-        server_uri = response.headers.get('X-Pingback')
-        if not server_uri:  # As a falback, we try parsing the HTML, looking for <link> elements
-            doc_soup = BeautifulSoup(response.text, BS4_HTML_PARSER)
+        resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent)
+        server_uri = resp_headers.get('X-Pingback')
+        if not server_uri and resp_headers.get('Content-Type') == 'text/html':
+            # As a falback, we try parsing the HTML, looking for <link> elements
+            doc_soup = BeautifulSoup(resp_content, BS4_HTML_PARSER)
             link = doc_soup.find(rel='pingback', href=True)
             if link:
                 server_uri = link['href']
@@ -108,17 +109,17 @@ def send_webmention(source_url, target_url, user_agent):
     try:
         # WebMention server autodiscovery:
         server_uri = None
-        response = requests.get(target_url, headers={'User-Agent': user_agent}, timeout=TIMEOUT)
-        response.raise_for_status()
-        link_header = response.headers.get('Link')
+        resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent)
+        link_header = resp_headers.get('Link')
         if link_header:
             try:
                 server_uri = next(lh.get('url') for lh in parse_header_links(link_header)
                                   if lh.get('url') and lh.get('rel') in WEBMENTION_POSS_REL)
             except StopIteration:
                 pass
-        if not server_uri:  # As a falback, we try parsing the HTML, looking for <link> elements
-            for link in BeautifulSoup(response.text, BS4_HTML_PARSER).find_all(rel=WEBMENTION_POSS_REL, href=True):
+        if not server_uri and resp_headers.get('Content-Type') == 'text/html':
+            # As a falback, we try parsing the HTML, looking for <link> elements
+            for link in BeautifulSoup(resp_content, BS4_HTML_PARSER).find_all(rel=WEBMENTION_POSS_REL, href=True):
                 if link.get('href'):
                     server_uri = link.get('href')
         if not server_uri:
@@ -133,6 +134,19 @@ def send_webmention(source_url, target_url, user_agent):
     except Exception:
         LOGGER.exception("Failed to send WebMention for link url %s", target_url)
         return False
+
+def requests_get_with_max_size(url, user_agent):
+    'cf. https://benbernardblog.com/the-case-of-the-mysterious-python-crash/'
+    _GET_CHUNK_SIZE = 2**10
+    _MAX_RESPONSE_LENGTH = 2**20
+    with closing(requests.get(url, stream=True, headers={'User-Agent': user_agent}, timeout=TIMEOUT)) as response:
+        response.raise_for_status()
+        content = ''
+        for chunk in response.iter_content(chunk_size=_GET_CHUNK_SIZE, decode_unicode=True):
+            content += chunk if response.encoding else chunk.decode()
+            if len(content) >= _MAX_RESPONSE_LENGTH:
+                raise RuntimeError("The response was too large (greater than {0} bytes).".format(_MAX_RESPONSE_LENGTH))
+        return content, response.headers
 
 class XmlRpcClient(xmlrpc.client.Transport):
     def __init__(self, user_agent):
@@ -151,3 +165,10 @@ def send_trackback(source_url, target_url, user_agent):
 
 def register():
     signals.all_generators_finalized.connect(process_all_articles_linkbacks)
+
+
+if __name__ == '__main__':
+    # Some integrations tests that used to fail:
+    logging.basicConfig(level=logging.DEBUG)
+    send_pingback('https://chezsoi.org/lucas/blog/minutes-of-the-fosdem-2020-conference.html',
+                  'https://dpya.org/en/images/2/2b/Opensources_bw.pdf', DEFAULT_USER_AGENT)
