@@ -65,7 +65,7 @@ def test_pingback_http_error(tmpdir, caplog):
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
     assert 'Failed to send Pingback for link url http://localhost/sub/some-page.html' in caplog.text
-    assert '503 Server Error' in caplog.text
+    assert '503' in caplog.text
 
 @httpretty.activate
 def test_pingback_xmlrpc_error(tmpdir, caplog):
@@ -87,10 +87,10 @@ def test_webmention_http_error(tmpdir, caplog):
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
     assert 'Failed to send WebMention for link url http://localhost/sub/some-page.html' in caplog.text
-    assert '503 Server Error' in caplog.text
+    assert '503' in caplog.text
 
 def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link')):
-    headers = {}
+    headers = {'Content-Type': 'text/html'}
     if 'header' in pingback:
         headers['X-Pingback'] = 'http://localhost/sub/pingback-endpoint'
     if 'header' in webmention:

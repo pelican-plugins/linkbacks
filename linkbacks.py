@@ -135,17 +135,18 @@ def send_webmention(source_url, target_url, user_agent):
         LOGGER.exception("Failed to send WebMention for link url %s", target_url)
         return False
 
+
+GET_CHUNK_SIZE = 2**10
+MAX_RESPONSE_LENGTH = 2**20
 def requests_get_with_max_size(url, user_agent):
     'cf. https://benbernardblog.com/the-case-of-the-mysterious-python-crash/'
-    _GET_CHUNK_SIZE = 2**10
-    _MAX_RESPONSE_LENGTH = 2**20
     with closing(requests.get(url, stream=True, headers={'User-Agent': user_agent}, timeout=TIMEOUT)) as response:
         response.raise_for_status()
         content = ''
-        for chunk in response.iter_content(chunk_size=_GET_CHUNK_SIZE, decode_unicode=True):
+        for chunk in response.iter_content(chunk_size=GET_CHUNK_SIZE, decode_unicode=True):
             content += chunk if response.encoding else chunk.decode()
-            if len(content) >= _MAX_RESPONSE_LENGTH:
-                raise RuntimeError("The response was too large (greater than {0} bytes).".format(_MAX_RESPONSE_LENGTH))
+            if len(content) >= MAX_RESPONSE_LENGTH:
+                raise RuntimeError("The response was too large (greater than {0} bytes).".format(MAX_RESPONSE_LENGTH))
         return content, response.headers
 
 class XmlRpcClient(xmlrpc.client.Transport):
