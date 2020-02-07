@@ -45,7 +45,7 @@ def test_link_host_not_reachable(tmpdir, caplog):
     assert process_all_articles_linkbacks([article_generator]) == 0
     assert 'Failed to send Pingback for link url http://localhost/sub/some-page.html' in caplog.text
     assert 'Failed to send WebMention for link url http://localhost/sub/some-page.html' in caplog.text
-    assert 'ConnectionRefusedError' in caplog.text
+    assert 'ConnectionError' in caplog.text
 
 @httpretty.activate
 def test_pingback_ok_without_http_header(tmpdir):

@@ -70,7 +70,7 @@ In order to avoid the repetitive CPU / bandwidth cost of repeatedly performing l
 this hook only proceed to do so once, the first time an article is published.
 
 In order to do so, it uses a very simple and small cache that contains the list of all hyperlinks already parsed,
-per article `slug`.
+per article `slug`. <!-- Note: alternatively, we could cache only article slugs and consider them entirely processed -->
 
 
 ### Configuration
@@ -112,8 +112,9 @@ For Pingbacks, I used for my tests a Wordpress instance launched with Docker:
 From my experience, you'll also have to:
 - configure a local MySQL database to accept connections from `$WORDPRESS_DB_USER:$WORDPRESS_DB_PASSWORD`
 - configure the `xmlrpc_pingback_error` Wordpress filter to be _passthrough_, to get useful error messages
-- configure the `http_request_host_is_external` Wordpress filter to always return `true`, so that it won't reject `host.docker.internal`
+- configure the `http_request_host_is_external` Wordpress filter to always return `true`,
+  so that it won't reject `host.docker.internal` links
 
-And there is Wordpress client source code:
+And there is Wordpress client source code related to XML-RPC pingbacks:
 - [wp-includes/comment.php](https://github.com/WordPress/WordPress/blob/master/wp-includes/comment.php)
 - [wp-includes/class-wp-xmlrpc-server.php](https://github.com/WordPress/WordPress/blob/master/wp-includes/class-wp-xmlrpc-server.php)

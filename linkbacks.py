@@ -1,13 +1,17 @@
 from contextlib import closing
 from datetime import datetime
 import json, logging, os, xmlrpc.client
+from os.path import splitext
+from ssl import SSLError
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 from pelican import signals
 from pelican.generators import ArticlesGenerator
 import requests
+from requests.exceptions import RequestException
 from requests.utils import parse_header_links
+from urllib3.exceptions import HTTPError
 
 
 BS4_HTML_PARSER = 'html.parser'  # Alt: 'html5lib', 'lxml', 'lxml-xml'
@@ -21,6 +25,10 @@ LOGGER = logging.getLogger(__name__)
 
 def process_all_articles_linkbacks(generators):
     'Just to ease testing, returns the number of notifications successfully sent'
+    root_logger_level = logging.root.level
+    if root_logger_level > 0:  # inherit root logger level, if defined
+        LOGGER.setLevel(root_logger_level)
+
     start_time = datetime.now()
     article_generator = next(g for g in generators if isinstance(g, ArticlesGenerator))
 
@@ -65,8 +73,8 @@ def process_all_links_of_an_article(article, cache, settings):
         if siteurl and link_url.startswith(siteurl):
             LOGGER.debug("Link url %s skipped because is starts with %s", link_url, siteurl)
             continue
-        if link_url.endswith('.pdf'):
-            LOGGER.debug("Link url %s skipped because it appears to be a PDF file", link_url)
+        if splitext(link_url)[1] in ('gif', 'jpg', 'pdf', 'png', 'svg'):
+            LOGGER.debug("Link url %s skipped because it appears to be an image or PDF file", link_url)
             continue
         if link_url in links_cache:
             LOGGER.debug("Link url %s skipped because it has already been processed (present in cache)", link_url)
@@ -104,7 +112,9 @@ def send_pingback(source_url, target_url, user_agent):
             return False
         LOGGER.info("Pingback notification sent for URL %s, endpoint response: %s", target_url, response)
         return True
-    except Exception:
+    except (ConnectionError, HTTPError, RequestException, ResponseTooBig, SSLError) as error:
+        LOGGER.error("Failed to send Pingback for link url %s: [%s] %s", target_url, error.__class__.__name__, error)
+    except Exception:  # unexpected exception => we display the stacktrace:
         LOGGER.exception("Failed to send Pingback for link url %s", target_url)
         return False
 
@@ -134,7 +144,9 @@ def send_webmention(source_url, target_url, user_agent):
         response.raise_for_status()
         LOGGER.info("WebMention notification sent for URL %s, endpoint response: %s", target_url, response.text)
         return True
-    except Exception:
+    except (ConnectionError, HTTPError, HTTPErrorRequestException, ResponseTooBig, SSLError) as error:
+        LOGGER.error("Failed to send WebMention for link url %s: [%s] %s", target_url, error.__class__.__name__, error)
+    except Exception:  # unexpected exception => we display the stacktrace:
         LOGGER.exception("Failed to send WebMention for link url %s", target_url)
         return False
 
@@ -149,8 +161,11 @@ def requests_get_with_max_size(url, user_agent):
         for chunk in response.iter_content(chunk_size=GET_CHUNK_SIZE, decode_unicode=True):
             content += chunk if response.encoding else chunk.decode()
             if len(content) >= MAX_RESPONSE_LENGTH:
-                raise RuntimeError("The response was too large (greater than {0} bytes).".format(MAX_RESPONSE_LENGTH))
+                raise ResponseTooBig("The response for URL {} was too large (> {} bytes).".format(url, MAX_RESPONSE_LENGTH))
         return content, response.headers
+
+class ResponseTooBig(Exception):
+    pass
 
 class XmlRpcClient(xmlrpc.client.Transport):
     def __init__(self, user_agent):
