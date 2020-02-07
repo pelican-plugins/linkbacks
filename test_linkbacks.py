@@ -72,14 +72,14 @@ def test_pingback_xmlrpc_error(tmpdir, caplog):
     _setup_http_mocks(pingback=('header', 'xmlrpc_error'), webmention=())
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
-    assert 'Pingback XML-RPC request failed: code=0 - Unexpected error.' in caplog.text
+    assert 'Pingback XML-RPC request failed for URL http://localhost/sub/some-page.html: code=0 - Unexpected error.' in caplog.text
 
 @httpretty.activate
 def test_pingback_already_registered(tmpdir, caplog):
     _setup_http_mocks(pingback=('header', 'already_registered'), webmention=())
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
-    assert 'Pingback already registered, XML-RPC response: code=48 - The pingback has already been registered.' in caplog.text
+    assert 'Pingback already registered for URL http://localhost/sub/some-page.html, XML-RPC response: code=48 - The pingback has already been registered.' in caplog.text
 
 @httpretty.activate
 def test_webmention_http_error(tmpdir, caplog):
