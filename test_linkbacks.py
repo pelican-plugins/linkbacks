@@ -4,7 +4,7 @@ import httpretty
 from pelican.generators import ArticlesGenerator
 from pelican.tests.support import get_settings
 
-from linkbacks import process_all_articles_linkbacks, CACHE_FILENAME, LOGGER
+from linkbacks import process_all_articles_linkbacks, CACHE_FILENAME
 
 
 CUR_DIR = os.path.dirname(__file__)
@@ -12,7 +12,7 @@ TEST_CONTENT_DIR = os.path.join(CUR_DIR, 'test_content')
 
 
 def setup():
-    LOGGER.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.DEBUG)
 
 
 @httpretty.activate

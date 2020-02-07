@@ -144,7 +144,7 @@ def send_webmention(source_url, target_url, user_agent):
         response.raise_for_status()
         LOGGER.info("WebMention notification sent for URL %s, endpoint response: %s", target_url, response.text)
         return True
-    except (ConnectionError, HTTPError, HTTPErrorRequestException, ResponseTooBig, SSLError) as error:
+    except (ConnectionError, HTTPError, RequestException, ResponseTooBig, SSLError) as error:
         LOGGER.error("Failed to send WebMention for link url %s: [%s] %s", target_url, error.__class__.__name__, error)
     except Exception:  # unexpected exception => we display the stacktrace:
         LOGGER.exception("Failed to send WebMention for link url %s", target_url)
