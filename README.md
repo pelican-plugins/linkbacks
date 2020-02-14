@@ -1,7 +1,3 @@
-<!-- Next:
-- obtain at least ONE WordPress blog pingback registered
-  Ask help on http://docs.getpelican.com/en/stable/contribute.html#the-pelican-irc-channel ?
--->
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
 [![build status](https://github.com/pelican-plugins/linkbacks/workflows/build/badge.svg)](https://github.com/pelican-plugins/linkbacks/actions?query=workflow%3Abuild)
 [![Pypi latest version](https://img.shields.io/pypi/v/pelican-plugin-linkbacks.svg)](https://pypi.python.org/pypi/pelican-plugin-linkbacks)

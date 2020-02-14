@@ -205,26 +205,3 @@ def send_trackback(source_url, target_url, resp_content=None, resp_headers=None,
 
 def register():
     signals.all_generators_finalized.connect(process_all_articles_linkbacks)
-
-
-if __name__ == '__main__':
-    # Some integrations tests:
-    logging.basicConfig(level=logging.DEBUG)
-    LOGGER.setLevel(logging.DEBUG)
-    send_webmention('https://chezsoi.org/lucas/blog/',
-                    'https://chezsoi.org/lucas/blog/pages/jeux-de-role.html', user_agent=DEFAULT_USER_AGENT)
-    send_pingback('https://chezsoi.org/lucas/blog/',
-                  'https://chezsoi.org/lucas/blog/pages/jeux-de-role.html', user_agent=DEFAULT_USER_AGENT)
-    # Handling 301 redirects to HTTPS
-    # Now getting "Invalid discovery target" errors, probably due to akismet: https://github.com/wp-plugins/akismet/blob/master/class.akismet.php#L1099
-    send_pingback('https://chezsoi.org/lucas/blog/lassassin-de-la-reine.html',
-                  'https://www.evilhat.com/home/for-the-queen', user_agent=DEFAULT_USER_AGENT)
-    # Many Wordpress websites answer a faultCode 0 with no message, due to the default value of xmlrpc_pingback_error :(
-    send_pingback('https://chezsoi.org/lucas/blog/face-au-titan.html',
-                  'https://www.500nuancesdegeek.fr/sword-without-master', user_agent=DEFAULT_USER_AGENT)
-    # ArtStation is protected by CloudFare and keep responding 403s...
-    send_pingback('https://chezsoi.org/lucas/blog/porte-monstre-trophee-dore.html',
-                  'https://www.artstation.com/artwork/VXe5N', user_agent=DEFAULT_USER_AGENT)
-    # Local testing with Wordpress Docker image:
-    send_pingback('http://host.docker.internal:5500/OriMushi/',
-                  'http://localhost/2020/02/07/test-article/', user_agent=DEFAULT_USER_AGENT)
