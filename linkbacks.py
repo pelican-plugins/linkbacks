@@ -211,11 +211,10 @@ if __name__ == '__main__':
     # Some integrations tests:
     logging.basicConfig(level=logging.DEBUG)
     LOGGER.setLevel(logging.DEBUG)
-    # send_webmention('https://chezsoi.org/lucas/blog/',
-                    # 'https://chezsoi.org/lucas/blog/pages/jeux-de-role.html', user_agent=DEFAULT_USER_AGENT)
-    send_pingback('https://chezsoi.org/lucas/blog/',
+    send_webmention('https://chezsoi.org/lucas/blog/',
                     'https://chezsoi.org/lucas/blog/pages/jeux-de-role.html', user_agent=DEFAULT_USER_AGENT)
-    exit(0)
+    send_pingback('https://chezsoi.org/lucas/blog/',
+                  'https://chezsoi.org/lucas/blog/pages/jeux-de-role.html', user_agent=DEFAULT_USER_AGENT)
     # Handling 301 redirects to HTTPS
     # Now getting "Invalid discovery target" errors, probably due to akismet: https://github.com/wp-plugins/akismet/blob/master/class.akismet.php#L1099
     send_pingback('https://chezsoi.org/lucas/blog/lassassin-de-la-reine.html',
