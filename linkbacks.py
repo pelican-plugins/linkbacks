@@ -104,6 +104,7 @@ def send_pingback(source_url, target_url, resp_content=None, resp_headers=None, 
                 server_uri = link['href']
         if not server_uri:
             return False
+        LOGGER.debug("Pingback URI detected: %s", server_uri)
         # Performing pingback request:
         transport = SafeXmlRpcTransport(user_agent, TIMEOUT) if server_uri.startswith('https') else XmlRpcTransport(user_agent, TIMEOUT)
         xml_rpc_client = xmlrpc.client.ServerProxy(server_uri, transport)
@@ -144,6 +145,7 @@ def send_webmention(source_url, target_url, resp_content=None, resp_headers=None
                     server_uri = link.get('href')
         if not server_uri:
             return False
+        LOGGER.debug("WebMention URI detected: %s", server_uri)
         server_uri = urljoin(target_url, server_uri)
         # Performing WebMention request:
         response = requests.post(server_uri, headers={'User-Agent': user_agent}, timeout=TIMEOUT,
