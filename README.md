@@ -1,14 +1,10 @@
 <!-- Next:
 - obtain at least ONE WordPress blog pingback registered
   Ask help on http://docs.getpelican.com/en/stable/contribute.html#the-pelican-irc-channel ?
-- update dev status in pyproject.toml + publish on Pypi (& add badge) + release on GitHub
-  + document it on https://github.com/getpelican/pelican/wiki/Externally-hosted-plugins-and-tools
-  & https://github.com/getpelican/pelican/wiki/Powered-by-Pelican
-  & https://indieweb.org/Webmention#Others
-- relire: https://www.la-grange.net/2013/12/18/commentaire
 -->
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
 [![build status](https://github.com/pelican-plugins/linkbacks/workflows/build/badge.svg)](https://github.com/pelican-plugins/linkbacks/actions?query=workflow%3Abuild)
+[![Pypi latest version](https://img.shields.io/pypi/v/pelican-plugin-linkbacks.svg)](https://pypi.python.org/pypi/pelican-plugin-linkbacks)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 [Pelican](https://getpelican.com) plugin implementing [Linkback](https://en.wikipedia.org/wiki/Linkback) protocols,
@@ -24,7 +20,7 @@ which cannot be done by Pelican, a static blog engine
 ❌ TalkBack: won't be implemented because it did not gain enough popularity / traction since its birth in 2011
 
 ❌ Trackback ([protocol spec](http://archive.cweiske.de/trackback/trackback-1.2.html)):
-won't be implemented because it does not seem widely,
+won't be implemented because it does not seem widely used,
 and requires to parse embedded RDF documents (enclosed in HTML comments as a fallback),
 which seems a poor design in an era of HTML5 / [RDFa](https://fr.wikipedia.org/wiki/RDFa)
 
@@ -92,6 +88,15 @@ adding missing features, and fixing bugs. You can also help out by reviewing and
 
 To start contributing to this plugin, review the [Contributing to Pelican](https://docs.getpelican.com/en/latest/contribute.html) documentation,
 beginning with the **Contributing Code** section.
+
+
+### Releasing a new version
+With a valid `~/.pypirc`:
+
+1. update `CHANGELOG.md`
+2. bump version in `pyproject.toml`
+3. `poetry build && poetry publish`
+4. perform a release on GitGub, including the description added to `CHANGELOG.md`
 
 
 ## Linter & tests
