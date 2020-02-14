@@ -49,9 +49,9 @@ I recommend to use `pelican -D` flag to get debug logs, and hence follow the plu
 To enable this plugin:
 1. Install the package from Pypi: `pip install pelican-plugin-linkbacks`
 2. Add the plugin to your `publishconf.py`:
-
-    PLUGINS = [..., 'linkbacks']
-
+```python
+PLUGINS = [..., 'linkbacks']
+```
 
 ### Cache
 In order to avoid the repetitive CPU / bandwidth cost of repeatedly performing links parsing & linkback notifications,
