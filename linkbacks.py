@@ -162,7 +162,10 @@ def send_webmention(source_url, target_url, resp_content=None, resp_headers=None
 GET_CHUNK_SIZE = 2**10
 MAX_RESPONSE_LENGTH = 2**20
 def requests_get_with_max_size(url, user_agent=None):
-    'cf. https://benbernardblog.com/the-case-of-the-mysterious-python-crash/'
+    '''
+    We cap the allowed response size, in order to make things faster and avoid downloading useless huge blobs of data
+    cf. https://benbernardblog.com/the-case-of-the-mysterious-python-crash/
+    '''
     with closing(requests.get(url, stream=True, timeout=TIMEOUT,
                               headers={'User-Agent': user_agent} if user_agent else {})) as response:
         response.raise_for_status()
@@ -203,19 +206,24 @@ def register():
 
 
 if __name__ == '__main__':
-    # Some integrations tests that used to fail:
+    # Some integrations tests:
     logging.basicConfig(level=logging.DEBUG)
     LOGGER.setLevel(logging.DEBUG)
+    # send_webmention('https://chezsoi.org/lucas/blog/',
+                    # 'https://chezsoi.org/lucas/blog/pages/jeux-de-role.html', user_agent=DEFAULT_USER_AGENT)
+    send_pingback('https://chezsoi.org/lucas/blog/',
+                    'https://chezsoi.org/lucas/blog/pages/jeux-de-role.html', user_agent=DEFAULT_USER_AGENT)
+    exit(0)
     # Handling 301 redirects to HTTPS
     # Now getting "Invalid discovery target" errors, probably due to akismet: https://github.com/wp-plugins/akismet/blob/master/class.akismet.php#L1099
     send_pingback('https://chezsoi.org/lucas/blog/lassassin-de-la-reine.html',
-                  'https://www.evilhat.com/home/for-the-queen', DEFAULT_USER_AGENT)
+                  'https://www.evilhat.com/home/for-the-queen', user_agent=DEFAULT_USER_AGENT)
     # Many Wordpress websites answer a faultCode 0 with no message, due to the default value of xmlrpc_pingback_error :(
     send_pingback('https://chezsoi.org/lucas/blog/face-au-titan.html',
-                  'https://www.500nuancesdegeek.fr/sword-without-master', DEFAULT_USER_AGENT)
+                  'https://www.500nuancesdegeek.fr/sword-without-master', user_agent=DEFAULT_USER_AGENT)
     # ArtStation is protected by CloudFare and keep responding 403s...
     send_pingback('https://chezsoi.org/lucas/blog/porte-monstre-trophee-dore.html',
-                  'https://www.artstation.com/artwork/VXe5N', DEFAULT_USER_AGENT)
+                  'https://www.artstation.com/artwork/VXe5N', user_agent=DEFAULT_USER_AGENT)
     # Local testing with Wordpress Docker image:
     send_pingback('http://host.docker.internal:5500/OriMushi/',
-                  'http://localhost/2020/02/07/test-article/', DEFAULT_USER_AGENT)
+                  'http://localhost/2020/02/07/test-article/', user_agent=DEFAULT_USER_AGENT)
