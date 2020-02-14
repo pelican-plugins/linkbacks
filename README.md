@@ -46,17 +46,11 @@ I recommend to use `pelican -D` flag to get debug logs, and hence follow the plu
 
 
 ## Installation / setup instructions
-To enable this plugin, `git clone` this repository and add the following to your `publishconf.py`:
+To enable this plugin:
+1. Install the package from Pypi: `pip install pelican-plugin-linkbacks`
+2. Add the plugin to your `publishconf.py`:
 
-    PLUGIN_PATH = 'path/to/this-repo'
-    PLUGINS = ['linkbacks', ...]
-
-`PLUGIN_PATH` can be a path relative to your settings file or an absolute path.
-
-You will also need to install the Pypi dependencies listed in `pyproject.toml`:
-
-    pip install poetry
-    poetry install
+    PLUGINS = [..., 'linkbacks']
 
 
 ### Cache
