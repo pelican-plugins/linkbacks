@@ -33,7 +33,7 @@ def process_all_articles_linkbacks(generators):
     article_generator = next(g for g in generators if isinstance(g, ArticlesGenerator))
 
     settings = article_generator.settings
-    cache_filepath = settings.get('LINKBACKS_CACHEPATH', os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME))
+    cache_filepath = settings.get('LINKBACKS_CACHEPATH') or os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME)
 
     try:
         with open(cache_filepath) as cache_file:

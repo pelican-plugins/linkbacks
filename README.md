@@ -112,6 +112,6 @@ From my experience, you'll also have to:
 - configure the `http_request_host_is_external` Wordpress filter to always return `true`,
   so that it won't reject `host.docker.internal` links
 
-And there is Wordpress client source code related to XML-RPC pingbacks:
+Wordpress client source code related to XML-RPC pingbacks can be found there:
 - [wp-includes/comment.php](https://github.com/WordPress/WordPress/blob/master/wp-includes/comment.php)
 - [wp-includes/class-wp-xmlrpc-server.php](https://github.com/WordPress/WordPress/blob/master/wp-includes/class-wp-xmlrpc-server.php)
