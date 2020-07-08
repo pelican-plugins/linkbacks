@@ -60,6 +60,10 @@ this hook only proceed to do so once, the first time an article is published.
 In order to do so, it uses a very simple and small cache that contains the list of all hyperlinks already parsed,
 per article `slug`. <!-- Note: alternatively, we could cache only article slugs and consider them entirely processed -->
 
+To remove a blog entry from cache, in order for the plugin to retry sending a linkback:
+
+    jq "del(.['$slug'])" pelican-plugin-linkbacks.json | sponge pelican-plugin-linkbacks.json
+
 
 ### Configuration
 Available options:
@@ -69,6 +73,10 @@ where `$CACHE_PATH` is [a Pelican setting](https://docs.getpelican.com/en/latest
   the path to the JSON file containg this plugin cache (a list of URLs already processed).
 - `LINKBACKS_USERAGENT` (optional, default: `pelican-plugin-linkbacks`) :
   the `User-Agent` HTTP header to use while sending notifications.
+- `LINKBACKS_CERT_VERIFY` (optional, default: `False`) :
+  enforce HTTPS certificates verification when sending linkbacks
+- `LINKBACKS_REQUEST_TIMEOUT` (optional, in seconds, default: `3`) :
+  time in seconds allowed for each HTTP linkback request before abandon
 
 
 ## Contributing
