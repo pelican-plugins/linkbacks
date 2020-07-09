@@ -211,6 +211,7 @@ class SafeXmlRpcTransport(xmlrpc.client.SafeTransport):
         if self.timeout is not None:
             conn.timeout = self.timeout
         if self.cert_verify is False:
+            # pylint: disable=protected-access
             conn._context.check_hostname = False
             conn._context.verify_mode = CERT_NONE
         return conn
