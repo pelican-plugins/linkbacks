@@ -1,5 +1,5 @@
 [MESSAGES CONTROL]
-disable = broad-except, missing-docstring, multiple-imports, too-few-public-methods, too-many-arguments, too-many-locals
+disable = broad-except, missing-docstring, multiple-imports, too-few-public-methods
 
 [FORMAT]
 max-line-length = 180

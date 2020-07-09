@@ -33,19 +33,17 @@ def process_all_articles_linkbacks(generators):
     start_time = datetime.now()
     article_generator = next(g for g in generators if isinstance(g, ArticlesGenerator))
 
-    settings = article_generator.settings
-    cache_filepath = settings.get('LINKBACKS_CACHEPATH') or os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME)
-    config = LinkbackConfig(settings)
+    config = LinkbackConfig(article_generator.settings)
     if config.cert_verify:
         process_article_links = process_all_links_of_an_article
     else:  # silencing InsecureRequestWarnings:
-        def process_article_links(article, cache, config):
+        def process_article_links(*args, **kwargs):
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', InsecureRequestWarning)
-                return process_all_links_of_an_article(article, cache, config)
+                return process_all_links_of_an_article(*args, **kwargs)
 
     try:
-        with open(cache_filepath) as cache_file:
+        with open(config.cache_filepath) as cache_file:
             cache = json.load(cache_file)
     except FileNotFoundError:
         cache = {}
@@ -58,7 +56,7 @@ def process_all_articles_linkbacks(generators):
                 successful_notifs_count += process_article_links(article, cache, config)
         return successful_notifs_count
     finally:  # We save the cache & log our progress even in case of an interruption:
-        with open(cache_filepath, 'w+') as cache_file:
+        with open(config.cache_filepath, 'w+') as cache_file:
             json.dump(cache, cache_file)
         new_cache_links_count = sum(len(urls) for slug, urls in cache.items())
         LOGGER.info("Linkback plugin execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",
@@ -69,6 +67,7 @@ class LinkbackConfig:
         if settings is None:
             settings = {}
         self.siteurl = settings.get('SITEURL', '')
+        self.cache_filepath = settings.get('LINKBACKS_CACHEPATH') or os.path.join(settings.get('CACHE_PATH', ''), CACHE_FILENAME)
         self.cert_verify = settings.get('LINKBACKS_CERT_VERIFY', DEFAULT_CERT_VERIFY)
         self.timeout = settings.get('LINKBACKS_REQUEST_TIMEOUT', DEFAULT_TIMEOUT)
         self.user_agent = settings.get('LINKBACKS_USERAGENT', DEFAULT_USER_AGENT)
@@ -99,7 +98,7 @@ def process_all_links_of_an_article(article, cache, config):
         except Exception as error:
             LOGGER.debug("Failed to retrieve web page for link url %s: [%s] %s", link_url, error.__class__.__name__, error)
             continue
-        for notifier in (send_pingback, send_webmention): #, send_trackback):
+        for notifier in (send_pingback, send_webmention):
             if notifier(source_url, link_url, config, resp_content, resp_headers):
                 successful_notifs_count += 1
         links_cache.add(link_url)
@@ -228,10 +227,6 @@ class SafeXmlRpcTransport(xmlrpc.client.SafeTransport):
             conn._context.check_hostname = False
             conn._context.verify_mode = CERT_NONE
         return conn
-
-# pylint: disable=unused-argument
-def send_trackback(source_url, target_url, config=LinkbackConfig()):
-    pass  # Not implemented yet
 
 def register():
     signals.all_generators_finalized.connect(process_all_articles_linkbacks)
