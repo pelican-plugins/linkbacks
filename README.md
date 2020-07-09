@@ -57,8 +57,7 @@ PLUGINS = [..., 'linkbacks']
 In order to avoid the repetitive CPU / bandwidth cost of repeatedly performing links parsing & linkback notifications,
 this hook only proceed to do so once, the first time an article is published.
 
-In order to do so, it uses a very simple and small cache that contains the list of all hyperlinks already parsed,
-per article `slug`. <!-- Note: alternatively, we could cache only article slugs and consider them entirely processed -->
+In order to do so, it uses a very simple and small cache that contains the list of all hyperlinks already parsed, per article `slug`.
 
 To remove a blog entry from cache, in order for the plugin to retry sending a linkback:
 

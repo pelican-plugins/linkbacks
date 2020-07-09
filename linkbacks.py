@@ -76,6 +76,8 @@ def process_all_links_of_an_article(article, cache, config):
     source_url = os.path.join(config.siteurl, article.url)
     successful_notifs_count = 0
     links_cache = set(cache.get(article.slug, []))
+    # Even if an entry exists in the cache, we always extract all links,
+    # in order to support articles edits that could add new links.
     doc_soup = BeautifulSoup(article.content, BS4_HTML_PARSER)
     for anchor in doc_soup('a'):
         if 'href' not in anchor.attrs:
