@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pelican-plugin-linkbacks"
-version = "1.0.1"
+version = "1.0.2"
 description = "Pelican plugin implementing Linkback protocols, on the linking server side"
 authors = ["Lucas Cimon <lucas.cimon@gmail.com>"]
 license = "AGPL-3.0"
