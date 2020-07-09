@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.3] - 2020-07-09
+### Changed
+- silenced `InsecureRequestWarning`s
+
 ## [1.0.2] - 2020-07-09
 ### Fixed
 - fixed this: `ValueError: empty or no certificate, match_hostname needs a SSL socket or SSL context with either CERT_OPTIONAL or CERT_REQUIRED`

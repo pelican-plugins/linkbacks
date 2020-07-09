@@ -1,6 +1,6 @@
 from contextlib import closing
 from datetime import datetime
-import json, logging, os, xmlrpc.client
+import json, logging, os, xmlrpc.client, warnings
 from os.path import splitext
 from ssl import CERT_NONE, SSLError
 from urllib.parse import urljoin
@@ -11,7 +11,7 @@ from pelican.generators import ArticlesGenerator
 import requests
 from requests.exceptions import RequestException
 from requests.utils import parse_header_links
-from urllib3.exceptions import HTTPError
+from urllib3.exceptions import InsecureRequestWarning, HTTPError
 
 
 BS4_HTML_PARSER = 'html.parser'  # Alt: 'html5lib', 'lxml', 'lxml-xml'
@@ -35,6 +35,14 @@ def process_all_articles_linkbacks(generators):
 
     settings = article_generator.settings
     cache_filepath = settings.get('LINKBACKS_CACHEPATH') or os.path.join(settings.get('CACHE_PATH'), CACHE_FILENAME)
+    config = LinkbackConfig(settings)
+    if config.cert_verify:
+        process_article_links = process_all_links_of_an_article
+    else:  # silencing InsecureRequestWarnings:
+        def process_article_links(article, cache, config):
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', InsecureRequestWarning)
+                return process_all_links_of_an_article(article, cache, config)
 
     try:
         with open(cache_filepath) as cache_file:
@@ -47,7 +55,7 @@ def process_all_articles_linkbacks(generators):
     try:
         for article in article_generator.articles:
             if article.status == 'published':
-                successful_notifs_count += process_all_links_of_an_article(article, cache, settings)
+                successful_notifs_count += process_article_links(article, cache, config)
         return successful_notifs_count
     finally:  # We save the cache & log our progress even in case of an interruption:
         with open(cache_filepath, 'w+') as cache_file:
@@ -56,12 +64,17 @@ def process_all_articles_linkbacks(generators):
         LOGGER.info("Linkback plugin execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",
                     datetime.now() - start_time, new_cache_links_count - original_cache_links_count, successful_notifs_count)
 
-def process_all_links_of_an_article(article, cache, settings):
-    siteurl = settings.get('SITEURL', '')
-    source_url = os.path.join(siteurl, article.url)
-    cert_verify = settings.get('LINKBACKS_CERT_VERIFY', DEFAULT_CERT_VERIFY)
-    timeout = settings.get('LINKBACKS_REQUEST_TIMEOUT', DEFAULT_TIMEOUT)
-    user_agent = settings.get('LINKBACKS_USERAGENT', DEFAULT_USER_AGENT)
+class LinkbackConfig:
+    def __init__(self, settings=None):
+        if settings is None:
+            settings = {}
+        self.siteurl = settings.get('SITEURL', '')
+        self.cert_verify = settings.get('LINKBACKS_CERT_VERIFY', DEFAULT_CERT_VERIFY)
+        self.timeout = settings.get('LINKBACKS_REQUEST_TIMEOUT', DEFAULT_TIMEOUT)
+        self.user_agent = settings.get('LINKBACKS_USERAGENT', DEFAULT_USER_AGENT)
+
+def process_all_links_of_an_article(article, cache, config):
+    source_url = os.path.join(config.siteurl, article.url)
     successful_notifs_count = 0
     links_cache = set(cache.get(article.slug, []))
     doc_soup = BeautifulSoup(article.content, BS4_HTML_PARSER)
@@ -71,8 +84,8 @@ def process_all_links_of_an_article(article, cache, settings):
         link_url = anchor['href']
         if not link_url.startswith('http'):  # this effectively exclude relative links
             continue
-        if siteurl and link_url.startswith(siteurl):
-            LOGGER.debug("Link url %s skipped because is starts with %s", link_url, siteurl)
+        if config.siteurl and link_url.startswith(config.siteurl):
+            LOGGER.debug("Link url %s skipped because is starts with %s", link_url, config.siteurl)
             continue
         if splitext(link_url)[1] in ('.gif', '.jpg', '.pdf', '.png', '.svg'):
             LOGGER.debug("Link url %s skipped because it appears to be an image or PDF file", link_url)
@@ -82,21 +95,21 @@ def process_all_links_of_an_article(article, cache, settings):
             continue
         LOGGER.debug("Now attempting to send Linkbacks for link url %s", link_url)
         try:
-            resp_content, resp_headers = requests_get_with_max_size(link_url, user_agent, timeout, cert_verify)
+            resp_content, resp_headers = requests_get_with_max_size(link_url, config)
         except Exception as error:
             LOGGER.debug("Failed to retrieve web page for link url %s: [%s] %s", link_url, error.__class__.__name__, error)
             continue
         for notifier in (send_pingback, send_webmention): #, send_trackback):
-            if notifier(source_url, link_url, resp_content, resp_headers, user_agent, timeout, cert_verify):
+            if notifier(source_url, link_url, config, resp_content, resp_headers):
                 successful_notifs_count += 1
         links_cache.add(link_url)
     cache[article.slug] = list(links_cache)
     return successful_notifs_count
 
-def send_pingback(source_url, target_url, resp_content=None, resp_headers=None, user_agent=None, timeout=None, cert_verify=None):
+def send_pingback(source_url, target_url, config=LinkbackConfig(), resp_content=None, resp_headers=None):
     try:
         if resp_content is None:
-            resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent, timeout, cert_verify)
+            resp_content, resp_headers = requests_get_with_max_size(target_url, config)
         # Pingback server autodiscovery:
         server_uri = resp_headers.get('X-Pingback')
         if not server_uri and resp_headers.get('Content-Type', '').startswith('text/html'):
@@ -109,7 +122,7 @@ def send_pingback(source_url, target_url, resp_content=None, resp_headers=None, 
             return False
         LOGGER.debug("Pingback URI detected: %s", server_uri)
         # Performing pingback request:
-        transport = SafeXmlRpcTransport(user_agent, timeout, cert_verify) if server_uri.startswith('https') else XmlRpcTransport(user_agent, timeout)
+        transport = SafeXmlRpcTransport(config) if server_uri.startswith('https') else XmlRpcTransport(config)
         xml_rpc_client = xmlrpc.client.ServerProxy(server_uri, transport)
         try:
             response = xml_rpc_client.pingback.ping(source_url, target_url)
@@ -128,10 +141,10 @@ def send_pingback(source_url, target_url, resp_content=None, resp_headers=None, 
         LOGGER.exception("Failed to send Pingback for link url %s", target_url)
         return False
 
-def send_webmention(source_url, target_url, resp_content=None, resp_headers=None, user_agent=None, timeout=None, cert_verify=None):
+def send_webmention(source_url, target_url, config=LinkbackConfig(), resp_content=None, resp_headers=None):
     try:
         if resp_content is None:
-            resp_content, resp_headers = requests_get_with_max_size(target_url, user_agent, timeout, cert_verify)
+            resp_content, resp_headers = requests_get_with_max_size(target_url, config)
         # WebMention server autodiscovery:
         server_uri = None
         link_header = resp_headers.get('Link')
@@ -151,8 +164,8 @@ def send_webmention(source_url, target_url, resp_content=None, resp_headers=None
         LOGGER.debug("WebMention URI detected: %s", server_uri)
         server_uri = urljoin(target_url, server_uri)
         # Performing WebMention request:
-        response = requests.post(server_uri, headers={'User-Agent': user_agent}, timeout=timeout,
-                                 data={'source': source_url, 'target': target_url}, verify=cert_verify)
+        response = requests.post(server_uri, headers={'User-Agent': config.user_agent}, timeout=config.timeout,
+                                 data={'source': source_url, 'target': target_url}, verify=config.cert_verify)
         response.raise_for_status()
         LOGGER.info("WebMention notification sent for URL %s, endpoint response: %s", target_url, response.text)
         return True
@@ -166,13 +179,13 @@ def send_webmention(source_url, target_url, resp_content=None, resp_headers=None
 
 GET_CHUNK_SIZE = 2**10
 MAX_RESPONSE_LENGTH = 2**20
-def requests_get_with_max_size(url, user_agent=None, timeout=None, cert_verify=None):
+def requests_get_with_max_size(url, config=LinkbackConfig()):
     '''
     We cap the allowed response size, in order to make things faster and avoid downloading useless huge blobs of data
     cf. https://benbernardblog.com/the-case-of-the-mysterious-python-crash/
     '''
-    with closing(requests.get(url, stream=True, timeout=timeout, verify=cert_verify,
-                              headers={'User-Agent': user_agent} if user_agent else {})) as response:
+    with closing(requests.get(url, stream=True, timeout=config.timeout, verify=config.cert_verify,
+                              headers={'User-Agent': config.user_agent})) as response:
         response.raise_for_status()
         content = ''
         for chunk in response.iter_content(chunk_size=GET_CHUNK_SIZE, decode_unicode=True):
@@ -185,32 +198,31 @@ class ResponseTooBig(Exception):
     pass
 
 class XmlRpcTransport(xmlrpc.client.Transport):
-    def __init__(self, user_agent=None, timeout=None):
+    def __init__(self, config):
         super().__init__()
-        if user_agent is not None:
+        self.config = config
+        if config.user_agent is not None:
             # Shadows parent class attribute:
-            self.user_agent = user_agent
-        self.timeout = timeout
+            self.user_agent = config.user_agent
 
     def make_connection(self, host):
         conn = super().make_connection(host)
-        conn.timeout = self.timeout
+        conn.timeout = self.config.timeout
         return conn
 
 class SafeXmlRpcTransport(xmlrpc.client.SafeTransport):
-    def __init__(self, user_agent=None, timeout=None, cert_verify=None):
+    def __init__(self, config):
         super().__init__()
-        if user_agent is not None:
+        self.config = config
+        if config.user_agent is not None:
             # Shadows parent class attribute:
-            self.user_agent = user_agent
-        self.timeout = timeout
-        self.cert_verify = cert_verify
+            self.user_agent = config.user_agent
 
     def make_connection(self, host):
         conn = super().make_connection(host)
-        if self.timeout is not None:
-            conn.timeout = self.timeout
-        if self.cert_verify is False:
+        if self.config.timeout is not None:
+            conn.timeout = self.config.timeout
+        if self.config.cert_verify is False:
             # pylint: disable=protected-access
             conn._check_hostname = False
             conn._context.check_hostname = False
@@ -218,7 +230,7 @@ class SafeXmlRpcTransport(xmlrpc.client.SafeTransport):
         return conn
 
 # pylint: disable=unused-argument
-def send_trackback(source_url, target_url, resp_content=None, resp_headers=None, user_agent=None):
+def send_trackback(source_url, target_url, config=LinkbackConfig()):
     pass  # Not implemented yet
 
 def register():
