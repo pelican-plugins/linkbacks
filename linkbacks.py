@@ -195,7 +195,7 @@ def requests_get_with_max_size(url, config=LinkbackConfig()):
             if len(content) >= MAX_RESPONSE_LENGTH:
                 # Even truncated, the output is maybe still parsable as HTML to extract <link> tags.
                 # And if not, the linkback endpoint is maybe present as a HTTP header, so we do not abort and still return the content.
-                LOGGER.warning("The response for URL {} was too large, and hence was truncated to {} bytes.".format(url, MAX_RESPONSE_LENGTH))
+                LOGGER.warning("The response for URL %s was too large, and hence was truncated to %s bytes.", url, MAX_RESPONSE_LENGTH)
                 break
         return content, response.headers
 
