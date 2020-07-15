@@ -4,7 +4,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 [Pelican](https://getpelican.com) plugin implementing [Linkback](https://en.wikipedia.org/wiki/Linkback) protocols,
-on the linking server side.
+on the linking server side. More information in [this blog article](https://chezsoi.org/lucas/blog/pelican-pingback-and-webmentions.html).
 
 Protocols currently implemented:
 - [x] XMLRPC Pingback: [protocol spec](http://www.hixie.ch/specs/pingback/pingback)
