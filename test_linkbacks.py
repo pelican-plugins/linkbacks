@@ -4,7 +4,7 @@ import httpretty
 from pelican.generators import ArticlesGenerator
 from pelican.tests.support import get_settings
 
-from linkbacks import process_all_articles_linkbacks, CACHE_FILENAME
+from linkbacks import process_all_articles_linkbacks, CACHE_FILENAME, LOGGER, MAX_RESPONSE_LENGTH
 
 
 CUR_DIR = os.path.dirname(__file__)
@@ -13,6 +13,7 @@ TEST_CONTENT_DIR = os.path.join(CUR_DIR, 'test_content')
 
 def setup():
     logging.root.setLevel(logging.DEBUG)
+    LOGGER.disable_filter()  # disabling LimitFilter log deduping from pelican.log.FatalLogger
 
 
 @httpretty.activate
@@ -89,7 +90,21 @@ def test_webmention_http_error(tmpdir, caplog):
     assert 'Failed to send WebMention for link url http://localhost/sub/some-page.html' in caplog.text
     assert '503' in caplog.text
 
-def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link')):
+@httpretty.activate
+def test_response_too_big_and_link_in_header(tmpdir, caplog):
+    _setup_http_mocks(pingback=('header',), webmention=(), fat_html=True)
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 1
+    assert 'The response for URL http://localhost/sub/some-page.html was too large, and hence was truncated' in caplog.text
+
+@httpretty.activate
+def test_response_too_big_and_link_in_html(tmpdir, caplog):
+    _setup_http_mocks(pingback=('link',), webmention=(), fat_html=True)
+    article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
+    assert process_all_articles_linkbacks([article_generator]) == 1
+    assert 'The response for URL http://localhost/sub/some-page.html was too large, and hence was truncated' in caplog.text
+
+def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link'), fat_html=False):
     headers = {'Content-Type': 'text/html'}
     if 'header' in pingback:
         headers['X-Pingback'] = 'http://localhost/sub/pingback-endpoint'
@@ -98,7 +113,7 @@ def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link')
     httpretty.register_uri(
         httpretty.GET, 'http://localhost/sub/some-page.html',
         adding_headers=headers,
-        body=_build_html_content(pingback, webmention)
+        body=_build_html_content(pingback, webmention, fat_html)
     )
     # Pingback endpoint:
     xmlrpc_body = _build_xmlrpc_success('Pingback registered. Keep the web talking! :-)')
@@ -118,7 +133,7 @@ def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link')
         status=503 if 'http_error' in webmention else 200,
     )
 
-def _build_html_content(pingback, webmention):
+def _build_html_content(pingback, webmention, fat_html=False):
     return '''<!DOCTYPE html>
     <html lang="en-US">
     <head>
@@ -129,9 +144,10 @@ def _build_html_content(pingback, webmention):
         {webmention_link}
     </head>
     <body>
-    Dummy linked content
+    Dummy linked content {extra_body}
     </body>'''.format(pingback_link='<link rel="pingback" href="http://localhost/sub/pingback-endpoint">' if 'link' in pingback else '',
-                      webmention_link='<link rel="webmention" href="http://localhost/sub/webmention-endpoint">' if 'link' in webmention else '')
+                      webmention_link='<link rel="webmention" href="http://localhost/sub/webmention-endpoint">' if 'link' in webmention else '',
+                      extra_body='X'*MAX_RESPONSE_LENGTH if fat_html else '')
 
 def _build_xmlrpc_success(message):
     return '''<?xml version="1.0" encoding="UTF-8"?>

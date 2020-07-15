@@ -135,7 +135,7 @@ def send_pingback(source_url, target_url, config=LinkbackConfig(), resp_content=
             return False
         LOGGER.info("Pingback notification sent for URL %s, endpoint response: %s", target_url, response)
         return True
-    except (ConnectionError, HTTPError, RequestException, ResponseTooBig, SSLError) as error:
+    except (ConnectionError, HTTPError, RequestException, SSLError) as error:
         LOGGER.error("Failed to send Pingback for link url %s: [%s] %s", target_url, error.__class__.__name__, error)
         return False
     except Exception:  # unexpected exception => we display the stacktrace:
@@ -157,7 +157,8 @@ def send_webmention(source_url, target_url, config=LinkbackConfig(), resp_conten
                 pass
         if not server_uri and resp_headers.get('Content-Type', '').startswith('text/html'):
             # As a falback, we try parsing the HTML, looking for <link> elements
-            for link in BeautifulSoup(resp_content, BS4_HTML_PARSER).find_all(rel=WEBMENTION_POSS_REL, href=True):
+            doc_soup = BeautifulSoup(resp_content, BS4_HTML_PARSER)  # HTML parsing could be factord out of both methods
+            for link in doc_soup.find_all(rel=WEBMENTION_POSS_REL, href=True):
                 if link.get('href'):
                     server_uri = link.get('href')
         if not server_uri:
@@ -170,7 +171,7 @@ def send_webmention(source_url, target_url, config=LinkbackConfig(), resp_conten
         response.raise_for_status()
         LOGGER.info("WebMention notification sent for URL %s, endpoint response: %s", target_url, response.text)
         return True
-    except (ConnectionError, HTTPError, RequestException, ResponseTooBig, SSLError) as error:
+    except (ConnectionError, HTTPError, RequestException, SSLError) as error:
         LOGGER.error("Failed to send WebMention for link url %s: [%s] %s", target_url, error.__class__.__name__, error)
         return False
     except Exception:  # unexpected exception => we display the stacktrace:
@@ -192,11 +193,11 @@ def requests_get_with_max_size(url, config=LinkbackConfig()):
         for chunk in response.iter_content(chunk_size=GET_CHUNK_SIZE, decode_unicode=True):
             content += chunk if response.encoding else chunk.decode()
             if len(content) >= MAX_RESPONSE_LENGTH:
-                raise ResponseTooBig("The response for URL {} was too large (> {} bytes).".format(url, MAX_RESPONSE_LENGTH))
+                # Even truncated, the output is maybe still parsable as HTML to extract <link> tags.
+                # And if not, the linkback endpoint is maybe present as a HTTP header, so we do not abort and still return the content.
+                LOGGER.warning("The response for URL {} was too large, and hence was truncated to {} bytes.".format(url, MAX_RESPONSE_LENGTH))
+                break
         return content, response.headers
-
-class ResponseTooBig(Exception):
-    pass
 
 class XmlRpcTransport(xmlrpc.client.Transport):
     def __init__(self, config):
@@ -208,7 +209,8 @@ class XmlRpcTransport(xmlrpc.client.Transport):
 
     def make_connection(self, host):
         conn = super().make_connection(host)
-        conn.timeout = self.config.timeout
+        if self.config.timeout is not None:
+            conn.timeout = self.config.timeout
         return conn
 
 class SafeXmlRpcTransport(xmlrpc.client.SafeTransport):

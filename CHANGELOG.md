@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.4] - 2020-07-15
+### Changed
+- web pages of size greater than 2<sup>20</sup> bytes are not ignored anymore
+
 ## [1.0.3] - 2020-07-09
 ### Changed
 - silenced `InsecureRequestWarning`s
