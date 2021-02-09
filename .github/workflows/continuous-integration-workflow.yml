@@ -8,12 +8,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.7
-        uses: actions/setup-python@v1.1.1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.7
       - name: Pip dependencies cache
         # Attempt to restore an existing cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('dev-requirements.txt') }}
@@ -21,7 +21,7 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Virtualenvs dependencies cache
         # Attempt to restore an existing cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.local/share/virtualenvs
           key: ${{ runner.os }}-virtualenvs-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('dev-requirements.txt') }}
