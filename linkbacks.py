@@ -1,4 +1,4 @@
-from contextlib import closing
+from contextlib import closing, nullcontext
 from datetime import datetime
 import json, logging, os, xmlrpc.client, warnings
 from os.path import splitext
@@ -17,7 +17,7 @@ from urllib3.exceptions import InsecureRequestWarning, HTTPError
 BS4_HTML_PARSER = 'html.parser'  # Alt: 'html5lib', 'lxml', 'lxml-xml'
 CACHE_FILENAME = 'pelican-plugin-linkbacks.json'
 DEFAULT_USER_AGENT = 'pelican-plugin-linkbacks'
-DEFAULT_CERT_VERIFY = False
+DEFAULT_CERT_VERIFY = True
 DEFAULT_TIMEOUT = 3
 WEBMENTION_POSS_REL = ('webmention', 'http://webmention.org', 'http://webmention.org/', 'https://webmention.org', 'https://webmention.org/')
 
@@ -34,13 +34,6 @@ def process_all_articles_linkbacks(generators):
     article_generator = next(g for g in generators if isinstance(g, ArticlesGenerator))
 
     config = LinkbackConfig(article_generator.settings)
-    if config.cert_verify:
-        process_article_links = process_all_links_of_an_article
-    else:  # silencing InsecureRequestWarnings:
-        def process_article_links(*args, **kwargs):
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', InsecureRequestWarning)
-                return process_all_links_of_an_article(*args, **kwargs)
 
     try:
         with open(config.cache_filepath) as cache_file:
@@ -53,7 +46,10 @@ def process_all_articles_linkbacks(generators):
     try:
         for article in article_generator.articles:
             if article.status == 'published':
-                successful_notifs_count += process_article_links(article, cache, config)
+                with (warnings.catch_warnings() if config.cert_verify else nullcontext()):
+                    if not config.cert_verify:
+                        warnings.simplefilter('ignore', InsecureRequestWarning)
+                    successful_notifs_count += process_all_links_of_an_article(article, cache, config)
         return successful_notifs_count
     finally:  # We save the cache & log our progress even in case of an interruption:
         with open(config.cache_filepath, 'w+') as cache_file:
