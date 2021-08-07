@@ -46,7 +46,7 @@ def process_all_articles_linkbacks(generators):
     try:
         for article in article_generator.articles:
             if article.status == 'published':
-                with (warnings.catch_warnings() if config.cert_verify else nullcontext()):
+                with nullcontext() if config.cert_verify else warnings.catch_warnings():
                     if not config.cert_verify:
                         warnings.simplefilter('ignore', InsecureRequestWarning)
                     successful_notifs_count += process_all_links_of_an_article(article, cache, config)
