@@ -1,4 +1,8 @@
-from contextlib import closing, nullcontext
+from contextlib import closing
+try:
+    from contextlib import nullcontext
+except ImportError:  # => Python 3.6
+    from contextlib import suppress as nullcontext
 from datetime import datetime
 import json, logging, os, xmlrpc.client, warnings
 from os.path import splitext
