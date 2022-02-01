@@ -1,13 +1,13 @@
 # See https://pre-commit.com/hooks.html for info on hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.1.0
     hooks:
       - id: check-ast
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.10
+    rev: v1.1.11
     hooks:
     -   id: remove-crlf
     -   id: remove-tabs

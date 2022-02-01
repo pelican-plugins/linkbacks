@@ -40,7 +40,7 @@ def process_all_articles_linkbacks(generators):
     config = LinkbackConfig(article_generator.settings)
 
     try:
-        with open(config.cache_filepath) as cache_file:
+        with open(config.cache_filepath, encoding='utf8') as cache_file:
             cache = json.load(cache_file)
     except FileNotFoundError:
         cache = {}
@@ -56,7 +56,7 @@ def process_all_articles_linkbacks(generators):
                     successful_notifs_count += process_all_links_of_an_article(article, cache, config)
         return successful_notifs_count
     finally:  # We save the cache & log our progress even in case of an interruption:
-        with open(config.cache_filepath, 'w+') as cache_file:
+        with open(config.cache_filepath, 'w+', encoding='utf8') as cache_file:
             json.dump(cache, cache_file)
         new_cache_links_count = sum(len(urls) for slug, urls in cache.items())
         LOGGER.info("Linkback plugin execution took: %s - Links processed & inserted in cache: %s - Successful notifications: %s",

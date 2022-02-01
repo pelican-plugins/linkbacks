@@ -134,7 +134,10 @@ def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link')
     )
 
 def _build_html_content(pingback, webmention, fat_html=False):
-    return '''<!DOCTYPE html>
+    pingback_link = '<link rel="pingback" href="http://localhost/sub/pingback-endpoint">' if 'link' in pingback else ''
+    webmention_link = '<link rel="webmention" href="http://localhost/sub/webmention-endpoint">' if 'link' in webmention else ''
+    extra_body = 'X'*MAX_RESPONSE_LENGTH if fat_html else ''
+    return f'''<!DOCTYPE html>
     <html lang="en-US">
     <head>
         <meta charset="UTF-8">
@@ -145,31 +148,29 @@ def _build_html_content(pingback, webmention, fat_html=False):
     </head>
     <body>
     Dummy linked content {extra_body}
-    </body>'''.format(pingback_link='<link rel="pingback" href="http://localhost/sub/pingback-endpoint">' if 'link' in pingback else '',
-                      webmention_link='<link rel="webmention" href="http://localhost/sub/webmention-endpoint">' if 'link' in webmention else '',
-                      extra_body='X'*MAX_RESPONSE_LENGTH if fat_html else '')
+    </body>'''
 
 def _build_xmlrpc_success(message):
-    return '''<?xml version="1.0" encoding="UTF-8"?>
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
     <methodResponse><params>
-        <param><value><string>{}</string></value></param>
-    </params></methodResponse>'''.format(message)
+        <param><value><string>{message}</string></value></param>
+    </params></methodResponse>'''
 
 def _build_xmlrpc_error(fault_code, fault_string):
-    return '''<?xml version="1.0" encoding="UTF-8"?>
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
     <methodResponse><fault>
         <value><struct>
-            <member><name>faultCode</name><value><int>{}</int></value></member>
-            <member><name>faultString</name><value><string>{}</string></value></member>
+            <member><name>faultCode</name><value><int>{fault_code}</int></value></member>
+            <member><name>faultString</name><value><string>{fault_string}</string></value></member>
         </struct></value>
-    </fault></methodResponse>'''.format(fault_code, fault_string)
+    </fault></methodResponse>'''
 
 def _build_article_generator(content_path, tmpdir, site_url='http://localhost/blog/'):
     settings = get_settings(filenames={})
     _setup_cache_dir(settings['CACHE_PATH'])
     settings['SITEURL'] = site_url
     context = settings.copy()
-    context['generated_content'] = dict()
+    context['generated_content'] = {}
     context['static_links'] = set()
     article_generator = ArticlesGenerator(
         context=context, settings=settings,
