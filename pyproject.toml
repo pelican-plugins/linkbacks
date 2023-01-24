@@ -20,7 +20,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -37,12 +36,21 @@ classifiers = [
 "Tracker" = "https://github.com/pelican-plugins/linkbacks/issues"
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.7.2"
 beautifulsoup4 = "^4.8.2"
 requests = "^2.22.0"
 
+[tool.poetry.dev-dependencies]
+pelican = "^4.8.0"
+
 [tool.poetry.extras]
 markdown = ["markdown"]
+
+[tool.poetry.group.dev.dependencies]
+markdown = "^3.4.1"
+httpretty = "^1.1.4"
+pylint = "^2.15.10"
+pytest = "^7.2.1"
 
 [build-system]
 requires = ["poetry>=1.0"]
