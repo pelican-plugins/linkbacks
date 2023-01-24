@@ -1,7 +1,0 @@
-# Why this cannot be put in pyproject.toml: https://github.com/getpelican/cookiecutter-pelican-plugin/issues/8
-HTTPretty
-markdown
-pylint
-pytest
-# Installing pelican in editable mode makes its tests.support package available to us:
--e git+https://github.com/getpelican/pelican.git#egg=pelican

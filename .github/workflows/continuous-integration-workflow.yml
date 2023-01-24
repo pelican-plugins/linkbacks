@@ -34,15 +34,9 @@ jobs:
             ${{ runner.os }}-virtualenvs-
       - name: Install dependencies ⚙️
         run: |
-          python -m pip install -U pip poetry
+          python -m pip install -U poetry
           poetry install
-          source $(poetry env info --path)/bin/activate
-          pip install -r dev-requirements.txt
       - name: Linter 🔎
-        run: |
-          source $(poetry env info --path)/bin/activate
-          pylint *linkbacks.py
+        run: poetry run pylint *linkbacks.py
       - name: Tests ☑
-        run: |
-          source $(poetry env info --path)/bin/activate
-          py.test
+        run: poetry run py.test
