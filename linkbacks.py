@@ -5,6 +5,7 @@ except ImportError:  # => Python 3.6
     from contextlib import suppress as nullcontext
 from datetime import datetime
 import json, logging, os, xmlrpc.client, warnings
+from os import makedirs
 from os.path import splitext
 from ssl import CERT_NONE, SSLError
 from urllib.parse import urljoin
@@ -67,7 +68,11 @@ class LinkbackConfig:
         if settings is None:
             settings = {}
         self.siteurl = settings.get('SITEURL', '')
-        self.cache_filepath = settings.get('LINKBACKS_CACHEPATH') or os.path.join(settings.get('CACHE_PATH', ''), CACHE_FILENAME)
+        self.cache_filepath = settings.get('LINKBACKS_CACHEPATH')
+        if not self.cache_filepath:
+            cache_dir = settings.get('CACHE_PATH', '')
+            self.cache_filepath = os.path.join(cache_dir, CACHE_FILENAME)
+            makedirs(cache_dir, exist_ok=True)
         self.cert_verify = settings.get('LINKBACKS_CERT_VERIFY', DEFAULT_CERT_VERIFY)
         self.timeout = settings.get('LINKBACKS_REQUEST_TIMEOUT', DEFAULT_TIMEOUT)
         self.user_agent = settings.get('LINKBACKS_USERAGENT', DEFAULT_USER_AGENT)

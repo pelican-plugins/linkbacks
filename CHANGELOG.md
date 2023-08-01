@@ -5,8 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.0.5] - not released yet
+### Added
+* ensured support for the latest Python 3.11 version
 ### Fixed
 * `ImportError` with Python 3.6 due to `contextlib.nullcontext` not existing yet
+* if the `cache/` directory does not exist, it is created - _cf._ [issue #11](https://github.com/pelican-plugins/linkbacks/issues/11)
 
 ## [1.0.4] - 2020-07-15
 ### Changed
