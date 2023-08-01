@@ -72,7 +72,8 @@ class LinkbackConfig:
         if not self.cache_filepath:
             cache_dir = settings.get('CACHE_PATH', '')
             self.cache_filepath = os.path.join(cache_dir, CACHE_FILENAME)
-            makedirs(cache_dir, exist_ok=True)
+            if cache_dir:
+                makedirs(cache_dir, exist_ok=True)
         self.cert_verify = settings.get('LINKBACKS_CERT_VERIFY', DEFAULT_CERT_VERIFY)
         self.timeout = settings.get('LINKBACKS_REQUEST_TIMEOUT', DEFAULT_TIMEOUT)
         self.user_agent = settings.get('LINKBACKS_USERAGENT', DEFAULT_USER_AGENT)
