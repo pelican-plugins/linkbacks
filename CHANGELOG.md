@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 * `ImportError` with Python 3.6 due to `contextlib.nullcontext` not existing yet
 * if the `cache/` directory does not exist, it is created - _cf._ [issue #11](https://github.com/pelican-plugins/linkbacks/issues/11)
+### Changed
+- The path for linkbacks is modified to allow for pelican-plugins to pick it up properly from pip
 
 ## [1.0.4] - 2020-07-15
 ### Changed
