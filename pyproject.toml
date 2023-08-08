@@ -7,7 +7,7 @@ license = "AGPL-3.0"
 readme = "README.md"
 keywords = ["pelican", "plugin", "linkback", "pingback", "trackback", "webmention"]
 repository = "https://github.com/pelican-plugins/linkbacks"
-packages = [{ include = "linkbacks.py" }]
+packages = [{ include = "pelican" }]
 include = ["CHANGELOG.md", "README.md"]
 
 classifiers = [
