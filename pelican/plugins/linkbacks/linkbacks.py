@@ -4,19 +4,24 @@ try:
 except ImportError:  # => Python 3.6
     from contextlib import suppress as nullcontext
 from datetime import datetime
-import json, logging, os, xmlrpc.client, warnings
+import json
+import logging
+import os
 from os import makedirs
 from os.path import splitext
 from ssl import CERT_NONE, SSLError
+import xmlrpc.client
+import warnings
 from urllib.parse import urljoin
+from urllib3.exceptions import InsecureRequestWarning, HTTPError
 
 from bs4 import BeautifulSoup
-from pelican import signals
-from pelican.generators import ArticlesGenerator
 import requests
 from requests.exceptions import RequestException
 from requests.utils import parse_header_links
-from urllib3.exceptions import InsecureRequestWarning, HTTPError
+
+from pelican import signals
+from pelican.generators import ArticlesGenerator
 
 
 BS4_HTML_PARSER = 'html.parser'  # Alt: 'html5lib', 'lxml', 'lxml-xml'
