@@ -37,6 +37,6 @@ jobs:
           python -m pip install -U poetry
           poetry install
       - name: Linter 🔎
-        run: poetry run pylint *linkbacks.py
+        run: poetry run pylint pelican/plugins/linkbacks/*.py
       - name: Tests ☑
         run: poetry run py.test
