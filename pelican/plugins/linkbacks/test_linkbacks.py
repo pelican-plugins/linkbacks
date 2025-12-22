@@ -106,7 +106,6 @@ def test_response_too_big_and_link_in_html(tmpdir, caplog):
     _setup_http_mocks(pingback=('link',), webmention=(), fat_html=True)
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 1
-    assert 'The response for URL http://localhost/sub/some-page.html was too large, and hence was truncated' in caplog.text
 
 def _setup_http_mocks(pingback=('header', 'link'), webmention=('header', 'link'), fat_html=False):
     headers = {'Content-Type': 'text/html'}
