@@ -4,17 +4,15 @@ import httpretty
 from pelican.generators import ArticlesGenerator
 from pelican.tests.support import get_settings
 
-from linkbacks import process_all_articles_linkbacks, CACHE_FILENAME, LOGGER, MAX_RESPONSE_LENGTH
+from linkbacks import (
+    process_all_articles_linkbacks,
+    CACHE_FILENAME,
+    MAX_RESPONSE_LENGTH,
+)
 
 
 CUR_DIR = os.path.dirname(__file__)
 TEST_CONTENT_DIR = os.path.join(CUR_DIR, 'test_content')
-
-
-def setup():
-    logging.root.setLevel(logging.DEBUG)
-    LOGGER.disable_filter()  # disabling LimitFilter log deduping from pelican.log.FatalLogger
-
 
 @httpretty.activate
 def test_ok(tmpdir):
@@ -30,6 +28,7 @@ def test_ok_zero_linkbacks(tmpdir):
 
 @httpretty.activate
 def test_cache(tmpdir, caplog):
+    caplog.set_level(logging.DEBUG)
     _setup_http_mocks()
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 2
@@ -37,11 +36,13 @@ def test_cache(tmpdir, caplog):
     assert 'Link url http://localhost/sub/some-page.html skipped because it has already been processed (present in cache)' in caplog.text
 
 def test_ignore_internal_links(tmpdir, caplog):
+    caplog.set_level(logging.DEBUG)
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir, site_url='http://localhost/sub/')
     assert process_all_articles_linkbacks([article_generator]) == 0
     assert 'Link url http://localhost/sub/some-page.html skipped because is starts with http://localhost/sub/' in caplog.text
 
 def test_link_host_not_reachable(tmpdir, caplog):
+    caplog.set_level(logging.DEBUG)
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
     assert 'Failed to retrieve web page for link url http://localhost/sub/some-page.html' in caplog.text
@@ -77,6 +78,7 @@ def test_pingback_xmlrpc_error(tmpdir, caplog):
 
 @httpretty.activate
 def test_pingback_already_registered(tmpdir, caplog):
+    caplog.set_level(logging.DEBUG)
     _setup_http_mocks(pingback=('header', 'already_registered'), webmention=())
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
@@ -92,6 +94,7 @@ def test_webmention_http_error(tmpdir, caplog):
 
 @httpretty.activate
 def test_response_too_big_and_link_in_header(tmpdir, caplog):
+    caplog.clear()
     _setup_http_mocks(pingback=('header',), webmention=(), fat_html=True)
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 1
@@ -99,6 +102,7 @@ def test_response_too_big_and_link_in_header(tmpdir, caplog):
 
 @httpretty.activate
 def test_response_too_big_and_link_in_html(tmpdir, caplog):
+    caplog.clear()
     _setup_http_mocks(pingback=('link',), webmention=(), fat_html=True)
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 1
