@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pelican-plugin-linkbacks"
-version = "1.0.4"
+version = "1.0.5"
 description = "Pelican plugin implementing Linkback protocols, on the linking server side"
 authors = ["Lucas Cimon <lucas.cimon@gmail.com>"]
 license = "AGPL-3.0"
@@ -29,22 +29,26 @@ classifiers = [
 "Tracker" = "https://github.com/pelican-plugins/linkbacks/issues"
 
 [tool.poetry.dependencies]
-python = "^3.7.2"
-beautifulsoup4 = "^4.8.2"
-requests = "^2.22.0"
+python = ">=3.10, <= 3.14"
+beautifulsoup4 = "^4.14.3"
+requests = "^2.32.5"
 
 [tool.poetry.dev-dependencies]
-pelican = "^4.8.0"
 
 [tool.poetry.extras]
 markdown = ["markdown"]
 
 [tool.poetry.group.dev.dependencies]
-markdown = "^3.4.1"
+pelican = "^4.11.0"
+markdown = "^3.10.0"
 httpretty = "^1.1.4"
-pylint = "^2.15.10"
-pytest = "^7.2.1"
+pylint = "^4.0.4"
+pytest = "^9.0.2"
+#pytest = "^7.2.1"
 
 [build-system]
 requires = ["poetry>=1.0"]
 build-backend = "poetry.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["pelican/plugins/linkbacks"]
