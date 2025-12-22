@@ -1,14 +1,22 @@
-[tool.poetry]
+[project]
 name = "pelican-plugin-linkbacks"
 version = "1.0.5"
 description = "Pelican plugin implementing Linkback protocols, on the linking server side"
-authors = ["Lucas Cimon <lucas.cimon@gmail.com>"]
+requires-python = ">=3.10, <=3.14"
 license = "AGPL-3.0"
-readme = "README.md"
 keywords = ["pelican", "plugin", "linkback", "pingback", "trackback", "webmention"]
-repository = "https://github.com/pelican-plugins/linkbacks"
-packages = [{ include = "pelican" }]
+
+readme = "README.md"
 include = ["CHANGELOG.md", "README.md"]
+
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "requests>=2.32.5"
+]
+
+authors = [
+  { name = "Lucas Cimon (@Lucas-C)" }
+]
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -22,21 +30,15 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[tool.poetry.urls]
+repository = "https://github.com/pelican-plugins/linkbacks"
+
+[project.urls]
 "Documentation" = "https://docs.getpelican.com/"
-"Funding" = "https://donate.getpelican.com/"
 "Source" = "https://github.com/pelican-plugins/linkbacks"
 "Tracker" = "https://github.com/pelican-plugins/linkbacks/issues"
 
-[tool.poetry.dependencies]
-python = ">=3.10, <= 3.14"
-beautifulsoup4 = "^4.14.3"
-requests = "^2.32.5"
-
-[tool.poetry.dev-dependencies]
-
-[tool.poetry.extras]
-markdown = ["markdown"]
+[tool.poetry]
+packages = [ { include = "pelican" } ]
 
 [tool.poetry.group.dev.dependencies]
 pelican = "^4.11.0"
@@ -44,7 +46,6 @@ markdown = "^3.10.0"
 httpretty = "^1.1.4"
 pylint = "^4.0.4"
 pytest = "^9.0.2"
-#pytest = "^7.2.1"
 
 [build-system]
 requires = ["poetry>=1.0"]
