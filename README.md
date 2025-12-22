@@ -88,7 +88,7 @@ beginning with the **Contributing Code** section.
 
 
 ### Releasing a new version
-With a valid `~/.pypirc`:
+With a valid configuration in `~/.config/pypoetry/`:
 
 1. update `CHANGELOG.md`
 2. bump version in `pyproject.toml`
