@@ -1,6 +1,10 @@
 import json, logging, os
 
 import httpretty
+from pelican.generators import ArticlesGenerator
+from pelican.tests.support import get_settings
+import pytest
+
 from linkbacks import (
     process_all_articles_linkbacks,
     Cache,
@@ -8,11 +12,6 @@ from linkbacks import (
     CACHE_FILENAME,
     MAX_RESPONSE_LENGTH,
 )
-import pytest
-
-from pelican.generators import ArticlesGenerator
-from pelican.tests.support import get_settings
-
 
 CUR_DIR = os.path.dirname(__file__)
 TEST_CONTENT_DIR = os.path.join(CUR_DIR, 'test_content')

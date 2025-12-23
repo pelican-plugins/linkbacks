@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- new configuration setting `LINKBACKS_IGNORED_URLS_PATTERN` to define some URLs that should never be considered for linkbacks (_e.g._ `youtube.com`)
 - manual execution mode: `python linkbacks.py $pelican_generated_html_file`
 
 ### Changed

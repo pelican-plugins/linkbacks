@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 import logging
 import os
+import re
 import sys
 from os import makedirs
 from os.path import basename, splitext
@@ -32,6 +33,8 @@ CACHE_FILENAME = 'pelican-plugin-linkbacks.json'
 DEFAULT_USER_AGENT = 'pelican-plugin-linkbacks'
 DEFAULT_CERT_VERIFY = True
 DEFAULT_TIMEOUT = 3
+DEFAULT_IGNORED_URLS_PATTERN = 'artstation.com|deviantart.com|github.com|github.io|itch.io|readthedocs.io|youtube.com|wikipedia.org'
+IMAGE_EXTENSIONS = ('.gif', '.jpg', '.pdf', '.png', '.svg')
 WEBMENTION_POSS_REL = ('webmention', 'http://webmention.org', 'http://webmention.org/', 'https://webmention.org', 'https://webmention.org/')
 
 LOGGER = logging.getLogger(__name__)
@@ -79,8 +82,11 @@ def process_all_links_of_an_article(config, cache, url, slug, content):
         if config.siteurl and link_url.startswith(config.siteurl):
             LOGGER.debug("Link url %s skipped because is starts with %s", link_url, config.siteurl)
             continue
-        if splitext(link_url)[1] in ('.gif', '.jpg', '.pdf', '.png', '.svg'):
+        if splitext(link_url)[1] in IMAGE_EXTENSIONS:
             LOGGER.debug("Link url %s skipped because it appears to be an image or PDF file", link_url)
+            continue
+        if config.ignored_urls_pattern.search(link_url):
+            LOGGER.debug("Link url %s skipped because it matches the ignored URLs pattern", link_url)
             continue
         cache_status = cache.get_status(slug, link_url)
         if cache_status:
@@ -104,9 +110,9 @@ def process_all_links_of_an_article(config, cache, url, slug, content):
                     continue
                 response = notifier.send()
                 LOGGER.info("%s notification sent for URL %s, endpoint response: %s", notifier.kind, link_url, response)
-                cache.add_success(slug, link_url, notifier.kind, notifier.server_uri)
+                cache.add_success(slug, link_url, notifier.kind, notifier.server_uri, response)
                 successful_notifs_count += 1
-            except (ConnectionError, HTTPError, RequestException, SSLError, xmlrpc.client.ProtocolError) as error:
+            except (ConnectionError, HTTPError, NotifierError, RequestException, SSLError, xmlrpc.client.ProtocolError) as error:
                 LOGGER.error("Failed to send %s for link url %s: [%s] %s", notifier.kind, link_url, error.__class__.__name__, error)
                 cache.add_failure(slug, link_url, error, notifier.kind, notifier.server_uri)
             except Exception as error:  # unexpected exception => we display the stacktrace:
@@ -128,6 +134,9 @@ class LinkbackConfig:
         self.cert_verify = settings.get('LINKBACKS_CERT_VERIFY', DEFAULT_CERT_VERIFY)
         self.timeout = settings.get('LINKBACKS_REQUEST_TIMEOUT', DEFAULT_TIMEOUT)
         self.user_agent = settings.get('LINKBACKS_USERAGENT', DEFAULT_USER_AGENT)
+        self.ignored_urls_pattern = settings.get('LINKBACKS_IGNORED_URLS_PATTERN', DEFAULT_IGNORED_URLS_PATTERN)
+        if self.ignored_urls_pattern and isinstance(self.ignored_urls_pattern, str):
+            self.ignored_urls_pattern = re.compile(self.ignored_urls_pattern)
 
 class Cache:
     def __init__(self, config, data):
@@ -137,12 +146,14 @@ class Cache:
         #   $article_slug: {
         #     $link_url: {
         #       "pingback": {
+        #         "error": // string or null if successful
+        #         "response": // string or null if failed
         #         "server_uri": "http...", // optional string
-        #         "error": // string or null if successfull
         #       },
         #       "webmention": {
+        #         "error": // string or null if successful
+        #         "response": // string or null if failed
         #         "server_uri": "http...", // optional string
-        #         "error": // string or null if successfull
         #       }
         #     },
         #     ...
@@ -151,13 +162,14 @@ class Cache:
         # }
         self.data = defaultdict(dict)
         self.data.update(data)
-    def add_success(self, article_slug, link_url, kind, server_uri):
+    def add_success(self, article_slug, link_url, kind, server_uri, response):
         article_links = self.data[article_slug]
         link_status = article_links.get(link_url)
         if link_status is None:
             link_status = {}
             article_links[link_url] = link_status
         link_status[kind] = {
+            "response": response,
             "server_uri": server_uri
         }
     def add_failure(self, article_slug, link_url, error, notifier_kind=None, server_uri=None):
@@ -186,11 +198,9 @@ class Cache:
             return None  # defensive, should never happen
         # For now we never retry sending pingbacks & webmentions if there is already an entry in the cache.
         # Later on, we could for example consider retrying on HTTP 5XX errors.
-        pingback_error = pingback_status.get("error")
-        webmention_error = webmention_status.get("error")
-        if pingback_error is None or webmention_error is None:
+        if pingback_status.get("response") or webmention_status.get("response"):
             return "ALREADY SUBMITTED"
-        return pingback_error or webmention_error
+        return pingback_status.get("error") or webmention_status.get("error")
     def links_count(self):
         return sum(len(url_statuses) for url_statuses in self.data.values())
     @classmethod
@@ -227,6 +237,9 @@ class Notifier(ABC):
     def send(self):
         "Sends the actual notification."
 
+class NotifierError(RuntimeError):
+    pass
+
 class PingbackNotifier(Notifier):
     def __init__(self, source_url, target_url, config=LinkbackConfig()):
         self.kind = "pingback"
@@ -253,8 +266,8 @@ class PingbackNotifier(Notifier):
             return xml_rpc_client.pingback.ping(self.source_url, self.target_url)
         except xmlrpc.client.Fault as fault:
             if fault.faultCode == 48:  # pingback already registered
-                raise RuntimeError(f"Pingback already registered for URL {self.target_url}, XML-RPC response: code={fault.faultCode} - {fault.faultString}") from fault
-            raise RuntimeError(f"Pingback XML-RPC request failed for URL {self.target_url}: code={fault.faultCode} - {fault.faultString}") from fault
+                raise NotifierError(f"Pingback already registered for URL {self.target_url}, XML-RPC response: code={fault.faultCode} - {fault.faultString}") from fault
+            raise NotifierError(f"Pingback XML-RPC request failed for URL {self.target_url}: code={fault.faultCode} - {fault.faultString}") from fault
 
 class WebmentionNotifier(Notifier):
     def __init__(self, source_url, target_url, config=LinkbackConfig()):
