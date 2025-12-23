@@ -1,6 +1,6 @@
 [project]
 name = "pelican-plugin-linkbacks"
-version = "1.0.5"
+version = "1.0.6"
 description = "Pelican plugin implementing Linkback protocols, on the linking server side"
 requires-python = ">=3.10, <=3.14"
 license = "AGPL-3.0"
