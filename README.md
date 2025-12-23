@@ -84,7 +84,7 @@ The `linkbacks.py` module can be used as script to test this plugin behavior:
     export SITEURL=...
     python path/to/pelican/plugins/linkbacks/linkbacks.py $pelican_generated_html_file
 
-Optionally the `colorama` package can be installed to get colored logs in the output.
+To test sending a notification for a given URL to an endpoint, you can use the `cli_notifier.py` script.
 
 
 ## Contributing
@@ -108,7 +108,7 @@ With a valid configuration in `~/.config/pypoetry/`:
 ## Linter & tests
 To execute them:
 
-    pylint pelican/plugins/linkbacks/
+    pylint *.py pelican/plugins/linkbacks/
     pytest
 
 ### Integration tests

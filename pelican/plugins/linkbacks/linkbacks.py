@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import closing
@@ -228,7 +229,7 @@ class Notifier(ABC):
     * server_uri: URL of the notification endpoint
     """
     @abstractmethod
-    def discover_server_uri(self):
+    def discover_server_uri(self, resp_content=None, resp_headers=None):
         """
         Sets .server_uri if a notification endpoint is found for target_url.
         Must be called before calling send().
@@ -379,37 +380,4 @@ def cli(html_filepath):
         cache.dump_to_json()
 
 if __name__ == '__main__':
-    try:  # Optional logs coloring:
-        from colorama import Back, Fore, Style
-        # Recipe from: https://chezsoi.org/lucas/blog/colored-logs-in-python.html
-        class ColorLogsWrapper:
-            COLOR_MAP = {
-                'debug': Fore.CYAN,
-                'info': Fore.GREEN,
-                'warning': Fore.YELLOW,
-                'error': Fore.RED,
-                'critical': Back.RED,
-            }
-            def __init__(self, logger):
-                self.logger = logger
-            def __getattr__(self, attr_name):
-                if attr_name == 'warn':
-                    attr_name = 'warning'
-                if attr_name not in 'debug info warning error critical':
-                    return getattr(self.logger, attr_name)
-                log_level = getattr(logging, attr_name.upper())
-                # mimicking logging/__init__.py behaviour
-                if not self.logger.isEnabledFor(log_level):
-                    return None
-                def wrapped_attr(msg, *args, **kwargs):
-                    style_prefix = self.COLOR_MAP[attr_name]
-                    msg = style_prefix + msg + Style.RESET_ALL
-                    # We call _.log directly to not increase the callstack
-                    # so that Logger.findCaller extract the corrects filename/lineno
-                    # pylint: disable=protected-access
-                    return self.logger._log(log_level, msg, args, **kwargs)
-                return wrapped_attr
-        LOGGER = ColorLogsWrapper(LOGGER)
-    except ImportError:
-        print("colorama not available - Logs coloring disabled")
     cli(sys.argv[1])
