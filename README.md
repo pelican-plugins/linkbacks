@@ -59,7 +59,11 @@ this hook only proceed to do so once, the first time an article is published.
 
 In order to do so, it uses a very simple and small cache that contains the list of all hyperlinks already parsed, per article `slug`.
 
-To remove a blog entry from cache, in order for the plugin to retry sending a linkback:
+To list successful linkbacks, using [`jq`](https://jqlang.org/):
+
+    jq -r . pelican-plugin-linkbacks.json | grep -B5 '"response"'
+
+To remove a blog entry from cache, in order for the plugin to retry sending a linkback, using [`jq`](https://jqlang.org/):
 
     jq "del(.['$slug'])" pelican-plugin-linkbacks.json | sponge pelican-plugin-linkbacks.json
 
@@ -76,6 +80,8 @@ where `$CACHE_PATH` is [a Pelican setting](https://docs.getpelican.com/en/latest
   enforce HTTPS certificates verification when sending linkbacks
 - `LINKBACKS_REQUEST_TIMEOUT` (optional, in seconds, default: `3`) :
   time in seconds allowed for each HTTP linkback request before abandon
+- `LINKBACKS_IGNORED_URLS_PATTERN` (optional, default to: `artstation.com|deviantart.com|github.com|github.io|itch.io|readthedocs.io|youtube.com|wikipedia.org`) :
+  list of hostnames to NOT try to send linkbacks to
 
 
 ## Manual execution
@@ -84,7 +90,7 @@ The `linkbacks.py` module can be used as script to test this plugin behavior:
     export SITEURL=...
     python path/to/pelican/plugins/linkbacks/linkbacks.py $pelican_generated_html_file
 
-To test sending a notification for a given URL to an endpoint, you can use the `cli_notifier.py` script.
+To test sending a notification for a given URL to an endpoint, you can use the [`cli_notifier.py`](./cli_notifier.py) script.
 
 
 ## Contributing
