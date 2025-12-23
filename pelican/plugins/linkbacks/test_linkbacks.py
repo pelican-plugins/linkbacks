@@ -1,15 +1,17 @@
-import logging, os
+import json, logging, os
 
 import httpretty
 from pelican.generators import ArticlesGenerator
 from pelican.tests.support import get_settings
+import pytest
 
 from linkbacks import (
     process_all_articles_linkbacks,
+    Cache,
+    LinkbackConfig,
     CACHE_FILENAME,
     MAX_RESPONSE_LENGTH,
 )
-
 
 CUR_DIR = os.path.dirname(__file__)
 TEST_CONTENT_DIR = os.path.join(CUR_DIR, 'test_content')
@@ -33,7 +35,7 @@ def test_cache(tmpdir, caplog):
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 2
     assert process_all_articles_linkbacks([article_generator]) == 0
-    assert 'Link url http://localhost/sub/some-page.html skipped because it has already been processed (present in cache)' in caplog.text
+    assert 'Link url http://localhost/sub/some-page.html skipped because it is present in cache with status: ALREADY SUBMITTED' in caplog.text
 
 def test_ignore_internal_links(tmpdir, caplog):
     caplog.set_level(logging.DEBUG)
@@ -66,7 +68,7 @@ def test_pingback_http_error(tmpdir, caplog):
     _setup_http_mocks(pingback=('header', 'http_error'), webmention=())
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
-    assert 'Failed to send Pingback for link url http://localhost/sub/some-page.html' in caplog.text
+    assert 'Failed to send pingback for link url http://localhost/sub/some-page.html' in caplog.text
     assert '503' in caplog.text
 
 @httpretty.activate
@@ -78,7 +80,6 @@ def test_pingback_xmlrpc_error(tmpdir, caplog):
 
 @httpretty.activate
 def test_pingback_already_registered(tmpdir, caplog):
-    caplog.set_level(logging.DEBUG)
     _setup_http_mocks(pingback=('header', 'already_registered'), webmention=())
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
@@ -89,7 +90,7 @@ def test_webmention_http_error(tmpdir, caplog):
     _setup_http_mocks(pingback=(), webmention=('header', 'http_error'))
     article_generator = _build_article_generator(TEST_CONTENT_DIR, tmpdir)
     assert process_all_articles_linkbacks([article_generator]) == 0
-    assert 'Failed to send WebMention for link url http://localhost/sub/some-page.html' in caplog.text
+    assert 'Failed to send webmention for link url http://localhost/sub/some-page.html' in caplog.text
     assert '503' in caplog.text
 
 @httpretty.activate
@@ -188,3 +189,33 @@ def _setup_cache_dir(cache_dir_path):
         os.remove(os.path.join(cache_dir_path, CACHE_FILENAME))
     except FileNotFoundError:
         pass
+
+def test_cache_load_old_format(tmpdir):
+    with (tmpdir / CACHE_FILENAME).open("w") as cache_file:
+        json.dump({
+            "festival-meujeuteries-merveilles": [
+                "https://laubergedesreveurs.fr/festival-meujeuterie-et-merveilles/"
+            ]
+        }, cache_file)
+    config = LinkbackConfig({'CACHE_PATH': str(tmpdir)})
+    with pytest.raises(EnvironmentError) as error:
+        Cache.load_from_json(config)
+    assert "Old cache format detected" in str(error)
+
+def test_cache_load_new_format(tmpdir):
+    with (tmpdir / CACHE_FILENAME).open("w") as cache_file:
+        json.dump({
+            "more-amazing-creative-commons-artists": {
+                "https://creativecommons.org/share-your-work/cclicenses/": {
+                    "pingback": {
+                        "error": "No pingback URI found"
+                    },
+                    "webmention": {
+                        "error": "No webmention URI found"
+                    }
+                }
+            }
+        }, cache_file)
+    config = LinkbackConfig({'CACHE_PATH': str(tmpdir)})
+    cache = Cache.load_from_json(config)
+    assert cache.get_status("more-amazing-creative-commons-artists", "https://creativecommons.org/share-your-work/cclicenses/") == "No pingback URI found"

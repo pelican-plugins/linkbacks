@@ -78,6 +78,15 @@ where `$CACHE_PATH` is [a Pelican setting](https://docs.getpelican.com/en/latest
   time in seconds allowed for each HTTP linkback request before abandon
 
 
+## Manual execution
+The `linkbacks.py` module can be used as script to test this plugin behavior:
+
+    export SITEURL=...
+    python path/to/pelican/plugins/linkbacks/linkbacks.py $pelican_generated_html_file
+
+Optionally the `colorama` package can be installed to get colored logs in the output.
+
+
 ## Contributing
 
 Contributions are welcome and much appreciated. Every little bit helps. You can contribute by improving the documentation,
@@ -99,7 +108,7 @@ With a valid configuration in `~/.config/pypoetry/`:
 ## Linter & tests
 To execute them:
 
-    pylint *linkbacks.py
+    pylint pelican/plugins/linkbacks/
     pytest
 
 ### Integration tests

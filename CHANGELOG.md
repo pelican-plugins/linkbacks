@@ -7,6 +7,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.6] - Not released yet
+
+### Added
+
+- new configuration setting `LINKBACKS_IGNORED_URLS_PATTERN` to define some URLs that should never be considered for linkbacks (_e.g._ `youtube.com`)
+- manual execution mode: `python linkbacks.py $pelican_generated_html_file`
+
+### Changed
+
+- JSON cache structure evolved to now store the linkbacks requests status.
+  This is **not** backward-compatible, and the plugin will ask you to remove any pre-existing `pelican-plugin-linkbacks.json` file.
+  _cf._ [issue #2](https://github.com/pelican-plugins/linkbacks/issues/2)
+
 ## [1.0.5] - 2025-12-22
 
 ### Added
